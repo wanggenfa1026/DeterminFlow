@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from copy import deepcopy
 import json
 import logging
+import os
 import uuid
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -24,6 +25,65 @@ logger = logging.getLogger(__name__)
 _MAX_MESSAGE_ATTACHMENTS = 64
 _MAX_ATTACHMENT_NAME_LENGTH = 255
 _MAX_ATTACHMENT_PATH_LENGTH = 4096
+
+# WebSocket 握手不受 CORS 中间件保护，浏览器也不对 WS 施加同源策略。
+# 没有 Origin 校验时，任意网页都能连上本机服务并驱动 Agent（CSWSH）。
+_WS_POLICY_VIOLATION = 1008
+
+# 桌面版 WebView 使用的来源
+_DESKTOP_ORIGINS = frozenset({
+    "tauri://localhost",
+    "https://tauri.localhost",
+    "http://tauri.localhost",
+})
+
+
+def _allowed_ws_origins() -> tuple[frozenset[str], bool]:
+    """解析允许的 WebSocket 来源，与 CORS 使用同一组环境变量。
+
+    Returns:
+        (允许的来源集合, 是否为通配模式)
+    """
+    origins_str = os.environ.get("CORS_ORIGINS", "")
+    wildcard = (
+        origins_str.strip() == "*"
+        or os.environ.get("CORS_ALLOW_ALL", "").lower() in ("true", "1", "yes")
+    )
+    if wildcard:
+        return frozenset(), True
+
+    if origins_str:
+        configured = {o.strip() for o in origins_str.split(",") if o.strip()}
+    else:
+        configured = {
+            "http://localhost:3000", "http://localhost:8020",
+            "http://127.0.0.1:3000", "http://127.0.0.1:8020",
+            "http://localhost:5173",
+        }
+    return frozenset(configured | _DESKTOP_ORIGINS), False
+
+
+async def _reject_unauthorized_origin(ws: WebSocket) -> bool:
+    """校验 WebSocket 握手的 Origin，拒绝时关闭连接。
+
+    浏览器发起的 WS 握手一定带 Origin；curl、桌面客户端等非浏览器场景不带，
+    因此缺失 Origin 时放行，不影响本地脚本调用。
+
+    Returns:
+        True 表示已拒绝并关闭连接，调用方应立即返回
+    """
+    headers = getattr(ws, "headers", None) or {}
+    origin = headers.get("origin")
+    if not origin:
+        return False
+
+    allowed, wildcard = _allowed_ws_origins()
+    if wildcard or origin in allowed:
+        return False
+
+    logger.warning("拒绝来源不合法的 WebSocket 连接: %s", origin)
+    await ws.close(code=_WS_POLICY_VIOLATION, reason="origin not allowed")
+    return True
 
 
 def _validate_message_attachments(raw_attachments, content: str) -> list[dict[str, str]]:
@@ -371,6 +431,8 @@ async def handle_chat_ws(ws: WebSocket, app_state):
       - {"type": "error", "message": "..."}
       - {"type": "notification", "data": {...}}
     """
+    if await _reject_unauthorized_origin(ws):
+        return
     await ws.accept()
     session_mgr = app_state.session_manager
 
@@ -729,6 +791,8 @@ async def handle_events_ws(ws: WebSocket, app_state):
     持续推送系统事件（会话状态变更、子会话通知等）
     客户端只需保持连接即可接收事件
     """
+    if await _reject_unauthorized_origin(ws):
+        return
     await ws.accept()
     await event_bus.subscribe("events", ws)
 

@@ -20,6 +20,7 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 import src.config as config
+from src.core.sensitive_paths import check_sensitive_path
 
 logger = logging.getLogger(__name__)
 
@@ -65,20 +66,17 @@ def _validate_and_resolve_path(
     if not workspace.exists():
         return False, f"Workspace 路径不存在: {workspace}", None
 
-    # 路径沙箱关闭：允许绝对路径，但仍拒绝敏感系统路径
+    # 路径沙箱关闭：允许绝对路径，但仍拒绝敏感系统路径与凭据文件
     if not config.CODING_PATH_SANDBOX_ENABLED:
         if os.path.isabs(relative_path):
             resolved = Path(relative_path).resolve()
         else:
             resolved = (workspace / relative_path).resolve()
-        # 基本安全检查：拒绝访问敏感系统目录（使用 Path.is_relative_to 做目录边界检查）
-        _SENSITIVE_DIRS = (
-            Path("/etc"), Path("/proc"), Path("/sys"),
-            Path("/dev"), Path("/boot"), Path("/root"),
-        )
-        for sensitive_dir in _SENSITIVE_DIRS:
-            if resolved == sensitive_dir or resolved.is_relative_to(sensitive_dir):
-                return False, f"沙箱关闭时仍禁止访问系统敏感路径: {resolved}", None
+        # 符号链接同样要按真实路径判定，否则软链可绕过拒绝表
+        real_resolved = Path(os.path.realpath(str(resolved)))
+        reason = check_sensitive_path(real_resolved)
+        if reason:
+            return False, f"沙箱关闭时仍禁止访问: {reason}", None
         logger.debug(f"沙箱关闭，允许路径访问: {resolved}")
         return True, "", resolved
 

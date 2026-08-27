@@ -8,8 +8,11 @@ REST API 路由 - 提供会话/记忆/提示词/系统状态的全部 REST 端�
 
 """
 
+import ipaddress
 import json
 import os
+import secrets
+import socket
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -22,6 +25,7 @@ import httpx
 
 
 from fastapi import APIRouter, Request, HTTPException, Body
+from fastapi.security.utils import get_authorization_scheme_param
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -1044,6 +1048,66 @@ async def get_config():
 
 
 
+# 这些配置项直接决定 Agent 的执行边界，可被用于提权（例如把命令模式改成
+# allow_all 即可绕过全部审批）。它们只接受本机回环请求，或携带管理令牌的请求。
+_PRIVILEGED_CONFIG_KEYS = frozenset({
+    "CODING_CMD_MODE",
+    "CODING_CMD_WHITELIST",
+    "CODING_CMD_BLACKLIST",
+    "CODING_PATH_SANDBOX_ENABLED",
+    "CODING_TOOLS_ENABLED",
+    "CODING_WORKSPACE_BASE",
+})
+
+
+def _is_loopback_client(request: Request) -> bool:
+    client = getattr(request, "client", None)
+    host = getattr(client, "host", None) if client is not None else None
+    if not host:
+        # 无对端信息（ASGI 未提供、进程内调用、测试替身）视为本机
+        return True
+    host = host.split("%", 1)[0]
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return host.lower() in {"localhost", "testclient"}
+
+
+def _require_local_access_for_privileged_config(
+    updates: dict, request: Request
+) -> None:
+    """提权类配置项只允许本机修改，或提供管理令牌。"""
+    privileged = _PRIVILEGED_CONFIG_KEYS.intersection(updates or {})
+    if not privileged:
+        return
+
+    from src.environment import get_determinflow_env
+
+    configured_token = get_determinflow_env("PLUGIN_ADMIN_TOKEN", "") or ""
+    if configured_token:
+        headers = getattr(request, "headers", None) or {}
+        scheme, supplied = get_authorization_scheme_param(
+            headers.get("Authorization")
+        )
+        if (
+            scheme.lower() == "bearer"
+            and supplied
+            and secrets.compare_digest(supplied, configured_token)
+        ):
+            return
+
+    if _is_loopback_client(request):
+        return
+
+    raise HTTPException(
+        status_code=403,
+        detail=(
+            f"配置项 {sorted(privileged)} 会改变执行边界，只能从本机修改；"
+            "远程修改请配置 DETERMINFLOW_PLUGIN_ADMIN_TOKEN 并使用 Bearer token"
+        ),
+    )
+
+
 @router.put("/config")
 
 async def update_config_api(body: UpdateConfigRequest, request: Request):
@@ -1051,6 +1115,8 @@ async def update_config_api(body: UpdateConfigRequest, request: Request):
     """批量更新运行时配置项，可选持久化到 .env"""
 
     from src.config import update_config
+
+    _require_local_access_for_privileged_config(body.updates, request)
 
     workspace_base = None
     if "CODING_WORKSPACE_BASE" in body.updates:
@@ -1582,7 +1648,7 @@ async def get_workspace_file(session_id: str, path: str, request: Request):
 
     guard = WorkspaceGuard()
 
-    result = guard.validate_path(session.workspace_path, path)
+    result = guard.validate_path(session.workspace_path, path, enforce_workspace=True)
 
     if not result.allowed:
 
@@ -1590,7 +1656,7 @@ async def get_workspace_file(session_id: str, path: str, request: Request):
 
 
 
-    abs_path = guard.get_effective_path(session.workspace_path, path)
+    abs_path = guard.get_effective_path(session.workspace_path, path, enforce_workspace=True)
 
     if not abs_path or not abs_path.exists():
 
@@ -2445,6 +2511,44 @@ async def add_model_provider(body: AddModelProviderRequest, request: Request):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def _reject_internal_network_target(hostname: str | None) -> None:
+    """拒绝指向内网、回环和云元数据地址的供应商 URL。
+
+    该接口会代服务端发起请求并回显部分响应，未加限制时可被用于探测内网。
+    """
+    if not hostname:
+        raise HTTPException(status_code=400, detail="API 地址缺少主机名")
+
+    host = hostname.strip().strip("[]").lower()
+    # 云厂商元数据服务，即便解析结果不在保留网段也一律拒绝
+    if host in {"metadata.google.internal", "metadata.goog"}:
+        raise HTTPException(status_code=400, detail="不允许访问云元数据地址")
+
+    try:
+        addresses = [info[4][0] for info in socket.getaddrinfo(host, None)]
+    except socket.gaierror:
+        # 解析失败时交给后续 httpx 报连接错误，不在这里泄漏解析细节
+        return
+
+    for address in addresses:
+        try:
+            ip = ipaddress.ip_address(address.split("%", 1)[0])
+        except ValueError:
+            continue
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="API 地址指向内网或保留地址，已拒绝",
+            )
+
+
 @router.post("/model-providers/models/discover")
 async def discover_provider_models(body: DiscoverProviderModelsRequest):
     """按 Provider 声明的 API 格式从 /models 拉取模型列表。"""
@@ -2469,6 +2573,7 @@ async def discover_provider_models(body: DiscoverProviderModelsRequest):
     parsed = urlparse(base_url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise HTTPException(status_code=400, detail="API 地址必须是有效的 http(s) URL")
+    _reject_internal_network_target(parsed.hostname)
 
     submitted_key = (body.api_key or "").strip()
     api_key = (

@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from src.core.background_tasks import spawn_background_task
 from .definition import (
     WorkflowDef, WorkflowNode, WorkflowState, WorkflowTask,
     NodeExecutionState, WorkflowRunRecord,
@@ -337,11 +338,11 @@ class WorkflowEngine(WorkflowFlowMixin, WorkflowLoopMixin):
                 raise
 
     def _push_wf_task_update(self, workflow_id: str, task: WorkflowTask):
-        """推送任务状态更新到 events 通道（非阻塞队列投递）。
+        """推送任务状态更新到 events 通道。
 
-        注意：EventBus 已重构为纯队列投递（put_nowait），下方 emit_event
-        内部无任何 await。create_task 仅用于将调用置于事件循环中运行，
-        这是引擎中唯一保留的 create_task 调用（远不如 token 流路径频繁）。
+        注意：在拆分执行器进程中，emit_event 会经 loopback 转发回 Controller，
+        内部有真实的 await（网络 IO），因此任务必须持有引用，否则可能在完成前
+        被 GC，导致状态事件丢失。
         """
         try:
             if self._task_update_listener is not None:
@@ -386,13 +387,21 @@ class WorkflowEngine(WorkflowFlowMixin, WorkflowLoopMixin):
                     "total": len(executable_node_ids),
                 },
             }
-            loop.create_task(event_bus.emit_event(payload))
+            spawn_background_task(
+                event_bus.emit_event(payload),
+                name=f"wf_task_update:{task.task_id}",
+                loop=loop,
+            )
             if task.main_session_id:
-                loop.create_task(event_bus.emit_chat({
-                    **payload,
-                    "type": "workflow_task_update",
-                    "session_id": task.main_session_id,
-                }))
+                spawn_background_task(
+                    event_bus.emit_chat({
+                        **payload,
+                        "type": "workflow_task_update",
+                        "session_id": task.main_session_id,
+                    }),
+                    name=f"wf_task_chat:{task.task_id}",
+                    loop=loop,
+                )
         except Exception:
             logger.debug("wf_task_update 事件推送失败", exc_info=True)
 

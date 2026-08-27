@@ -14,6 +14,7 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
+from src.core.background_tasks import spawn_background_task
 from .base import BaseNodePlugin, NodeContext, NodeResult
 from ..definition import (
     resolve_placeholders, NodeExecutionState, WorkflowDef, _now_iso,
@@ -662,15 +663,18 @@ class SubprocessNode(BaseNodePlugin):
         """推送子流程内部节点状态事件（带 parent_node_id 标记）。"""
         try:
             from src.web.event_bus import event_bus
-            asyncio.create_task(event_bus.emit_event({
-                "type": "wf_node_status",
-                "workflow_id": workflow_id,
-                "node_id": child_node_id,
-                "parent_node_id": parent_node_id,
-                "session_id": session_id,
-                "status": status,
-                "summary": summary,
-                "error": error,
-            }))
+            spawn_background_task(
+                event_bus.emit_event({
+                    "type": "wf_node_status",
+                    "workflow_id": workflow_id,
+                    "node_id": child_node_id,
+                    "parent_node_id": parent_node_id,
+                    "session_id": session_id,
+                    "status": status,
+                    "summary": summary,
+                    "error": error,
+                }),
+                name=f"wf_child_node_status:{child_node_id}",
+            )
         except Exception:
             logger.debug("wf_node_status (child) 事件推送失败", exc_info=True)

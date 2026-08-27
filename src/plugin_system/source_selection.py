@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 import time
@@ -9,6 +10,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Iterable
 
+
+logger = logging.getLogger(__name__)
 
 _COMMIT_RE = re.compile(r"^[0-9a-fA-F]{40,64}$")
 
@@ -138,6 +141,13 @@ def select_git_source(
         available = [
             probe for probe in available if probe.commit == primary.commit
         ]
+    else:
+        # 主源不可达：无法交叉验证镜像内容，镜像自报的 commit 成为权威。
+        # 这是上游有意的可用性取舍（见 test_uses_mirror_when_primary_is_unavailable），
+        # 在主源常年不可达的网络环境下是唯一可行路径，因此保留该行为。
+        logger.warning(
+            "Plugin 主仓库地址不可用，改用镜像且无法交叉校验 commit 一致性"
+        )
     transport_priority = {
         url: index for index, url in enumerate((*candidates[1:], candidates[0]))
     }

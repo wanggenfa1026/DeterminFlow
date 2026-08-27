@@ -229,27 +229,37 @@ class WorkflowExecutorSupervisor:
             event_host = self._event_receiver.endpoint.host
             event_port = self._event_receiver.endpoint.port
         process_tree = ExecutorProcessTree()
-        process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            "-m",
-            "src.workflow.executor_worker",
-            "--rpc-endpoint-path",
-            str(endpoint_path),
-            "--executor-id",
-            identity.executor_id,
-            "--executor-epoch",
-            identity.epoch,
-            "--parent-pid",
-            str(os.getpid()),
-            "--lease-path",
-            str(self.lease_path),
-            "--event-host",
-            event_host,
-            "--event-port",
-            str(event_port),
-            env=environment,
-            **process_tree.spawn_options(),
-        )
+        # 子进程崩溃时退出码不携带任何原因。把 stderr 落到运行目录，
+        # 启动失败时才能把真正的 traceback 附到错误里。
+        stderr_path = self._runtime_dir / "executor.stderr"
+        stderr_file = open(stderr_path, "w", encoding="utf-8", errors="replace")
+        try:
+            process = await asyncio.create_subprocess_exec(
+                sys.executable,
+                "-m",
+                "src.workflow.executor_worker",
+                "--rpc-endpoint-path",
+                str(endpoint_path),
+                "--executor-id",
+                identity.executor_id,
+                "--executor-epoch",
+                identity.epoch,
+                "--parent-pid",
+                str(os.getpid()),
+                "--lease-path",
+                str(self.lease_path),
+                "--event-host",
+                event_host,
+                "--event-port",
+                str(event_port),
+                env=environment,
+                stdout=stderr_file,
+                stderr=stderr_file,
+                **process_tree.spawn_options(),
+            )
+        finally:
+            # 子进程已持有自己的句柄副本，父进程这份可以关闭
+            stderr_file.close()
         self._process = process
         self._process_tree = process_tree
         try:
@@ -262,9 +272,9 @@ class WorkflowExecutorSupervisor:
             endpoint = await wait_for_endpoint_file(
                 endpoint_path, process, deadline=deadline,
             )
-        except Exception:
+        except Exception as exc:
             await self._abort_process(process)
-            raise
+            raise self._with_startup_output(exc) from exc
         if self.client is None:
             self.client = WorkflowExecutorClient(
                 endpoint, identity, auth_token=auth_token,
@@ -276,8 +286,11 @@ class WorkflowExecutorSupervisor:
             if process.returncode is not None:
                 self._record_exit_code(process.returncode)
                 self._reap_process_tree()
-                raise RuntimeError(
-                    f"Workflow Executor exited during startup: {process.returncode}"
+                raise self._with_startup_output(
+                    RuntimeError(
+                        "Workflow Executor exited during startup: "
+                        f"{process.returncode}"
+                    )
                 )
             try:
                 await self.client.call("ping")
@@ -287,6 +300,28 @@ class WorkflowExecutorSupervisor:
                     await self._abort_process(process)
                     raise TimeoutError("Workflow Executor startup timed out")
                 await asyncio.sleep(0.1)
+
+    def _read_startup_output(self, max_chars: int = 4000) -> str:
+        """读取子进程启动期输出的末尾片段，用于诊断启动失败。"""
+        if self._runtime_dir is None:
+            return ""
+        stderr_path = self._runtime_dir / "executor.stderr"
+        try:
+            text = stderr_path.read_text(encoding="utf-8", errors="replace").strip()
+        except OSError:
+            return ""
+        if len(text) > max_chars:
+            return "...(已截断)\n" + text[-max_chars:]
+        return text
+
+    def _with_startup_output(self, exc: Exception) -> Exception:
+        """把子进程 stderr 附加到启动失败异常上。"""
+        detail = self._read_startup_output()
+        if not detail:
+            return exc
+        return RuntimeError(
+            f"{exc}\n--- Workflow Executor 子进程输出 ---\n{detail}"
+        )
 
     async def _abort_process(self, process: asyncio.subprocess.Process) -> None:
         if process.returncode is None:

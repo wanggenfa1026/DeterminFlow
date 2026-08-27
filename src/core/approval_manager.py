@@ -225,8 +225,9 @@ class ApprovalManager:
         """
         try:
             from src.web.event_bus import event_bus
+            from src.core.background_tasks import spawn_background_task
             loop = asyncio.get_running_loop()
-            loop.create_task(event_bus.emit_event(event))
+            spawn_background_task(event_bus.emit_event(event), name="approval_event", loop=loop)
         except RuntimeError:
             logger.debug("无运行中的事件循环，跳过事件推送")
         except Exception as e:

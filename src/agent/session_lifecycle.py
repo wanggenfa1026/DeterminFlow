@@ -27,9 +27,10 @@ _SUB_RESULT_MAX_CHARS = 20_000
 def _try_emit_event(event: dict) -> None:
     try:
         from src.web.event_bus import event_bus
+        from src.core.background_tasks import spawn_background_task
 
         loop = asyncio.get_running_loop()
-        loop.create_task(event_bus.emit_event(event))
+        spawn_background_task(event_bus.emit_event(event), name="session_lifecycle_event", loop=loop)
     except RuntimeError:
         logger.debug("无法发送事件：无运行中的事件循环")
     except Exception:
@@ -934,7 +935,9 @@ class SessionLifecycleMixin(SessionRehydrationMixin):
                     await asyncio.wait_for(task, timeout=5.0)
                 except (asyncio.CancelledError, asyncio.TimeoutError):
                     pass
-        for session in self.sessions.values():
+        # 先快照：循环体内有 await，期间若有协程增删 session 会触发
+        # RuntimeError: dictionary changed size during iteration
+        for session in list(self.sessions.values()):
             if session.session_type == "main" and session.record:
                 await self._notify_session_end(session)
             await session.stop_consumer()

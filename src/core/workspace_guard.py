@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 import src.config as config
+from src.core.sensitive_paths import check_sensitive_path
 from src.core.types import GuardResult
 
 logger = logging.getLogger(__name__)
@@ -31,12 +32,20 @@ class WorkspaceGuard:
         self._workspace_manager = workspace_manager
         self._approval_manager = approval_manager
 
-    def validate_path(self, workspace_path: str, target_path: str) -> GuardResult:
+    def validate_path(
+        self,
+        workspace_path: str,
+        target_path: str,
+        *,
+        enforce_workspace: bool = False,
+    ) -> GuardResult:
         """验证目标路径是否在 workspace 沙箱内
 
         Args:
             workspace_path: Session 的 workspace 根目录（绝对路径）
             target_path: 工具接收的路径参数
+            enforce_workspace: 强制要求路径位于 workspace 内，忽略沙箱开关。
+                供 HTTP 接口等必须受限的调用方使用。
 
         Returns:
             GuardResult，allowed=True 表示路径安全
@@ -48,8 +57,12 @@ class WorkspaceGuard:
         if not workspace.exists():
             return GuardResult(allowed=False, reason=f"Workspace 路径不存在: {workspace}")
 
-        # 路径沙箱关闭：跳过绝对路径拒绝、穿越检测、符号链接检测
-        if not config.CODING_PATH_SANDBOX_ENABLED:
+        # 路径沙箱关闭：允许访问 workspace 之外，但系统目录和凭据文件始终拒绝
+        if not config.CODING_PATH_SANDBOX_ENABLED and not enforce_workspace:
+            resolved = Path(os.path.realpath(str(workspace / target_path)))
+            reason = check_sensitive_path(resolved)
+            if reason:
+                return GuardResult(allowed=False, reason=reason)
             return GuardResult(allowed=True)
 
         # 规则 2: 拒绝绝对路径输入
@@ -78,17 +91,26 @@ class WorkspaceGuard:
 
         return GuardResult(allowed=True)
 
-    def get_effective_path(self, workspace_path: str, relative_path: str) -> Path | None:
+    def get_effective_path(
+        self,
+        workspace_path: str,
+        relative_path: str,
+        *,
+        enforce_workspace: bool = False,
+    ) -> Path | None:
         """将工具接收的相对路径转为 workspace 下的安全绝对路径
 
         Args:
             workspace_path: workspace 根目录
             relative_path: 相对路径
+            enforce_workspace: 强制要求结果位于 workspace 内，忽略沙箱开关
 
         Returns:
             安全的绝对路径，验证失败返回 None
         """
-        result = self.validate_path(workspace_path, relative_path)
+        result = self.validate_path(
+            workspace_path, relative_path, enforce_workspace=enforce_workspace
+        )
         if not result.allowed:
             logger.warning(f"路径验证失败: {result.reason}")
             return None
@@ -145,9 +167,17 @@ class WorkspaceGuard:
             return GuardResult(allowed=False, reason="空命令")
         cmd_name = cmd_parts[0]
 
-        # 危险语法检测（管道、重定向等链式命令）
-        dangerous_chars = ["|", "&&", "||", ";", "`", "$("]
+        # 危险语法检测（管道、重定向、换行等链式命令）
+        # 底层以 shell=True 执行，换行与重定向同样可以追加额外动作
+        dangerous_chars = ["|", "&&", "||", ";", "`", "$(", "&", ">", "<", "\n", "\r"]
         has_chain = any(dc in command for dc in dangerous_chars)
+
+        # 解释器可以通过 -c/-e 执行任意代码，绕过按命令名的白名单匹配
+        if self._is_inline_code_execution(cmd_parts):
+            return GuardResult(
+                allowed=False, needs_approval=True,
+                reason=f"命令通过解释器内联执行代码，需要审批: {command[:100]}"
+            )
 
         if mode == "whitelist":
             whitelist = [w.strip() for w in config.CODING_CMD_WHITELIST.split(",") if w.strip()]
@@ -172,10 +202,54 @@ class WorkspaceGuard:
                     allowed=False, needs_approval=True,
                     reason=f"命令匹配黑名单: {command[:100]}"
                 )
+            # 黑名单只匹配首个命令，链式语法可以把危险命令藏在良性前缀之后
+            # （如 `echo hi && rm -rf /`），因此链式命令一律需要审批。
+            if has_chain:
+                return GuardResult(
+                    allowed=False, needs_approval=True,
+                    reason=f"命令包含链式语法，需要审批: {command[:100]}"
+                )
             return GuardResult(allowed=True)
 
         # 未知模式，默认需要审批
         return GuardResult(allowed=False, needs_approval=True, reason=f"未知审批模式: {mode}")
+
+    @staticmethod
+    def _is_inline_code_execution(cmd_parts: list[str]) -> bool:
+        """检测解释器内联执行代码（如 python -c、node -e）
+
+        白名单按命令名匹配，`python` 命中白名单后 `python -c "任意代码"` 会被直接
+        放行，等同于任意代码执行。这里识别常见解释器的内联执行参数并要求审批。
+        """
+        if not cmd_parts:
+            return False
+        # 去掉路径和 .exe 后缀，取解释器名
+        name = Path(cmd_parts[0]).name.lower()
+        if name.endswith(".exe"):
+            name = name[:-4]
+        # python3.11 / python3 等带版本号的形式
+        base = name.rstrip("0123456789.")
+
+        inline_flags = {
+            "python": {"-c", "-m"},
+            "python3": {"-c", "-m"},
+            "py": {"-c", "-m"},
+            "node": {"-e", "-p", "--eval", "--print"},
+            "nodejs": {"-e", "-p", "--eval", "--print"},
+            "perl": {"-e", "-E"},
+            "ruby": {"-e"},
+            "php": {"-r"},
+            "bash": {"-c"},
+            "sh": {"-c"},
+            "zsh": {"-c"},
+            "powershell": {"-c", "-command", "-encodedcommand"},
+            "pwsh": {"-c", "-command", "-encodedcommand"},
+            "cmd": {"/c", "/k"},
+        }
+        flags = inline_flags.get(name) or inline_flags.get(base)
+        if not flags:
+            return False
+        return any(arg.lower() in flags for arg in cmd_parts[1:])
 
     @staticmethod
     def _match_command_list(full_command: str, cmd_name: str, patterns: list[str]) -> bool:

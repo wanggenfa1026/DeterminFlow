@@ -3,11 +3,11 @@
   "description": "运行时配置 - 非敏感设置。同名环境变量会覆盖此处值",
   "coding": {
     "CODING_TOOLS_ENABLED": "true",
-    "CODING_PATH_SANDBOX_ENABLED": "false",
+    "CODING_PATH_SANDBOX_ENABLED": "true",
     "CODING_WORKSPACE_BASE": "data/workspaces",
     "CODING_CMD_MODE": "blacklist",
     "CODING_CMD_BLACKLIST": "rm -rf /,format,mkfs,dd if=",
-    "CODING_CMD_WHITELIST": "npm,node,python,pip,git,ls,cat,echo,cd,mkdir,cp,mv",
+    "CODING_CMD_WHITELIST": "npm,git,ls,cat,echo,cd,mkdir,cp,mv",
     "CODING_CMD_TIMEOUT": 300,
     "CODING_APPROVAL_TIMEOUT": 600,
     "CODING_MAX_FILE_SIZE": 1048576,

@@ -12,6 +12,7 @@ import logging
 import time
 
 from src.config import WORKFLOW_NODE_TIMEOUT_SECONDS
+from src.core.background_tasks import spawn_background_task
 from src.core.utils import message_content_text
 from src.workflow.json_output import (
     build_json_retry_prompt,
@@ -366,7 +367,11 @@ class AgentNode(BaseNodePlugin):
                 "status": status,
                 "error": error,
             }
-            asyncio.create_task(handle_approval(summary, status, error))
+            # 必须持有引用：该任务负责驱动 completion_event，被 GC 会让节点永久等待
+            spawn_background_task(
+                handle_approval(summary, status, error),
+                name=f"approval:{node_def.id}",
+            )
 
         def on_node_complete(session_id: str, summary: str, status: str, error: str):
             nonlocal _complete_called, completion_result

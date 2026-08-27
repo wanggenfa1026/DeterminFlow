@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from src.config import DATA_DIR, WORKFLOWS_DIR
+from src.core.background_tasks import spawn_background_task
 from src.core.change_broadcaster import ChangeBroadcaster
 from .definition import (
     WorkflowDef, WorkflowState, WorkflowTask, NodeExecutionState,
@@ -1196,14 +1197,17 @@ class WorkflowManager(
         # 推送 WebSocket 事件
         try:
             from src.web.event_bus import event_bus
-            asyncio.create_task(event_bus.emit_chat({
-                "type": "wf_variable_update",
-                "workflow_id": workflow_id,
-                "task_id": task_id,
-                "key": key,
-                "value": value,
-                "session_id": session_id,
-            }))
+            spawn_background_task(
+                event_bus.emit_chat({
+                    "type": "wf_variable_update",
+                    "workflow_id": workflow_id,
+                    "task_id": task_id,
+                    "key": key,
+                    "value": value,
+                    "session_id": session_id,
+                }),
+                name=f"wf_variable_update:{task_id}",
+            )
         except Exception:
             logger.exception("推送 wf_variable_update 事件失败")
 

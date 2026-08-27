@@ -62,8 +62,9 @@ def _try_emit_event(event: dict):
     """尝试向事件总线发送事件（非阻塞，不影响核心逻辑）"""
     try:
         from src.web.event_bus import event_bus
+        from src.core.background_tasks import spawn_background_task
         loop = asyncio.get_running_loop()
-        loop.create_task(event_bus.emit_event(event))
+        spawn_background_task(event_bus.emit_event(event), name="session_event", loop=loop)
     except RuntimeError:
         # 无运行中的事件循环（如清理线程），静默忽略
         logger.debug("无法发送事件：无运行中的事件循环")

@@ -3070,10 +3070,21 @@ class AgentSession:
             except (TypeError, ValueError):
                 # 降级：逐字段清理不可序列化的值
                 serialized = json.dumps(self._sanitize_dict(data), ensure_ascii=False, indent=2)
-            tmp_path = str(file_path) + ".tmp"
-            with open(tmp_path, "w", encoding="utf-8") as f:
-                f.write(serialized)
-            os.replace(tmp_path, file_path)
+            # 临时文件名带 PID：拆分执行器模式下 Controller 与 Executor 可能同时
+            # 写同一个 session 文件，固定后缀会让两个进程互相覆盖对方的半成品。
+            # 与 executor_pool / executor_transport 的写法保持一致。
+            tmp_path = f"{file_path}.tmp-{os.getpid()}"
+            try:
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    f.write(serialized)
+                os.replace(tmp_path, file_path)
+            except (IOError, OSError):
+                # 替换失败时清理残留的临时文件，避免堆积
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
 
         except (IOError, OSError) as e:
             self._logger.error(f"保存会话失败: {e}")

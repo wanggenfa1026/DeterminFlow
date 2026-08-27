@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from src.core.background_tasks import spawn_background_task
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -142,6 +144,9 @@ def push_node_status(
         }
         if parent_node_id:
             event_data["parent_node_id"] = parent_node_id
-        asyncio.create_task(event_bus.emit_event(event_data))
+        spawn_background_task(
+            event_bus.emit_event(event_data),
+            name=f"wf_node_status:{node_id}",
+        )
     except Exception:
         logger.debug("wf_node_status 事件推送失败", exc_info=True)

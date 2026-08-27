@@ -629,7 +629,12 @@ def setup_logging():
     from datetime import datetime
     from logging.handlers import RotatingFileHandler
     ensure_dirs()
-    log_file = LOGS_DIR / f"{datetime.now().strftime('%Y-%m-%d')}-web.log"
+    # RotatingFileHandler 不是多进程安全的：Controller 与各 Executor 同写一个文件时，
+    # Windows 上轮转所需的 rename 会因文件被占用而静默失败，导致日志丢失或交错。
+    # 因此按进程角色分文件。
+    role = os.getenv("DETERMINFLOW_RUNTIME_ROLE", "").strip()
+    suffix = "-web" if not role else f"-{role}-{os.getpid()}"
+    log_file = LOGS_DIR / f"{datetime.now().strftime('%Y-%m-%d')}{suffix}.log"
 
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
     level = getattr(logging, log_level, logging.INFO)
