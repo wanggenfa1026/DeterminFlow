@@ -1,3 +1,5 @@
+import { memo } from "react";
+import { hasVisibleText, stripInvisible } from "@/lib/visibleText";
 import type { Message } from "../../types";
 import MessageRenderer from "../MessageRenderer";
 import MarkdownContent from "./MarkdownContent";
@@ -17,7 +19,7 @@ function effectiveType(message: Message): string {
   return message.type || message.role || "";
 }
 
-export default function MessageBubble({
+function MessageBubble({
   message,
   streaming = false,
   editable = false,
@@ -44,17 +46,15 @@ export default function MessageBubble({
   if (type === "assistant") {
     return (
       <article className={`flex justify-start ${className}`} aria-label="助手消息">
-        <div className="max-w-[85%] space-y-2">
+        <div className="w-full min-w-0 space-y-1.5">
           {message.reasoning_content && (
             <ReasoningDisclosure content={message.reasoning_content} streaming={streaming && !message.content} />
           )}
-          {message.content && (
-            <div className="rounded-2xl rounded-bl-md border border-slate-700/50 bg-slate-800/50 px-4 py-3">
-              <MarkdownContent content={message.content} className="text-sm" />
-              {streaming && (
-                <span className="ml-1 inline-block h-4 w-2 animate-pulse bg-indigo-400 align-middle motion-reduce:animate-none" aria-hidden="true" />
-              )}
-            </div>
+          {hasVisibleText(message.content) && (
+            <MarkdownContent
+              content={stripInvisible(message.content)}
+              className="px-1 text-sm leading-7 text-foreground/90"
+            />
           )}
         </div>
       </article>
@@ -63,3 +63,5 @@ export default function MessageBubble({
 
   return <MessageRenderer message={message} readonly={readonly} onCommand={onCommand} />;
 }
+
+export default memo(MessageBubble);

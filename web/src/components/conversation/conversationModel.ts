@@ -133,10 +133,13 @@ function shouldRenderMessage(message: Message): boolean {
   return !!message.content || !!message.reasoning_content || !message.tool_calls?.length;
 }
 
-export function normalizeConversationTimeline(
-  messages: Message[],
-  liveSegments: StreamingSegment[] = [],
-): ConversationTimelineEntry[] {
+export interface HistoryTimeline {
+  entries: ConversationTimelineEntry[];
+  toolEntryById: Map<string, number>;
+}
+
+/** 只处理历史消息的重活（全量遍历、结果配对）——依赖仅为 messages，可被上层 memo 住。 */
+export function normalizeHistoryTimeline(messages: Message[]): HistoryTimeline {
   const entries: ConversationTimelineEntry[] = [];
   const results = resultByToolCallId(messages);
   const referencedIds = referencedToolCallIds(messages);
@@ -180,6 +183,18 @@ export function normalizeConversationTimeline(
       toolEntryById.set(invocation.id, entryIndex);
     }
   });
+
+  return { entries, toolEntryById };
+}
+
+/** 把流式 live 段合并进历史条目。每个 token 只做浅拷贝 + live 段处理，不再全量重算历史。 */
+export function mergeLiveSegments(
+  history: HistoryTimeline,
+  liveSegments: StreamingSegment[] = [],
+): ConversationTimelineEntry[] {
+  if (liveSegments.length === 0) return history.entries;
+  const entries = [...history.entries];
+  const toolEntryById = new Map(history.toolEntryById);
 
   liveSegments.forEach((segment, segmentIndex) => {
     if (segment.type === "reasoning") {
@@ -231,6 +246,13 @@ export function normalizeConversationTimeline(
   });
 
   return entries;
+}
+
+export function normalizeConversationTimeline(
+  messages: Message[],
+  liveSegments: StreamingSegment[] = [],
+): ConversationTimelineEntry[] {
+  return mergeLiveSegments(normalizeHistoryTimeline(messages), liveSegments);
 }
 
 export function formatTechnicalValue(value: string): string {

@@ -54,9 +54,7 @@ function SessionNode({ data }: NodeProps) {
 
   return (
     <div
-      className={`relative cursor-pointer transition-all duration-300 motion-reduce:transition-none ${
-        selected ? "scale-110" : "hover:scale-105 motion-reduce:hover:scale-100"
-      }`}
+      className="relative cursor-pointer"
       onMouseEnter={() => onHover(session)}
       onMouseLeave={() => onHover(null)}
       role="button"
@@ -79,12 +77,13 @@ function SessionNode({ data }: NodeProps) {
       )}
 
       <div
-        className={`relative px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 ${
-          selected ? "ring-2 ring-indigo-500" : ""
+        className={`relative px-3.5 py-2.5 rounded-lg bg-card transition-shadow hover:shadow-md ${
+          selected ? "ring-2 ring-primary" : ""
         }`}
         style={{
-          borderColor: `${borderColor}60`,
-          borderWidth: "2px",
+          borderColor: `${borderColor}55`,
+          borderStyle: "solid",
+          borderWidth: "1.5px",
           minWidth: isMain ? "180px" : "150px",
         }}
       >
@@ -175,16 +174,35 @@ export default function SessionGraphView({
       }
     }
 
-    // 为每个 main 创建独立的星形簇
-    const clusterSpacingX = 400;
-    const clusterSpacingY = 320;
+    // 多环放射布局：子会话围绕主会话按同心环排布，
+    // 每环容量由周长决定，避免节点数多时全部叠在一个扇形里。
+    const ringRadius = (ring: number) => 230 + (ring - 1) * 180;
+    const ringCapacity = (ring: number) =>
+      Math.max(6, Math.floor((2 * Math.PI * ringRadius(ring)) / 215));
+    const ringsNeeded = (count: number) => {
+      let rings = 0;
+      let left = count;
+      while (left > 0) {
+        rings += 1;
+        left -= ringCapacity(rings);
+      }
+      return Math.max(1, rings);
+    };
+
+    const maxSubs = mainSessions.reduce(
+      (max, main) => Math.max(max, (mainSubsMap[main.session_id] || []).length),
+      0,
+    );
+    const clusterR = maxSubs > 0 ? ringRadius(ringsNeeded(maxSubs)) : 140;
+    const clusterSpacingX = clusterR * 2 + 180;
+    const clusterSpacingY = clusterR * 2 + 160;
     const cols = Math.max(1, Math.ceil(Math.sqrt(mainSessions.length)));
 
     mainSessions.forEach((main, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
-      const centerX = 250 + col * clusterSpacingX;
-      const centerY = 80 + row * clusterSpacingY;
+      const centerX = clusterR + 120 + col * clusterSpacingX;
+      const centerY = clusterR + 100 + row * clusterSpacingY;
 
       nodes.push({
         id: main.session_id,
@@ -198,18 +216,19 @@ export default function SessionGraphView({
       });
 
       const subs = mainSubsMap[main.session_id] || [];
-      const subCount = subs.length;
-      if (subCount > 0) {
-        const startAngle = -Math.PI / 3;
-        const endAngle = Math.PI / 3;
-        const radius = 160;
+      let placed = 0;
+      let ring = 1;
+      while (placed < subs.length) {
+        const capacity = ringCapacity(ring);
+        const ringSubs = subs.slice(placed, placed + capacity);
+        const radius = ringRadius(ring);
+        // 相邻环错开半个间隔，连线不会重叠成一束
+        const angleOffset = ring % 2 === 0 ? Math.PI / ringSubs.length : 0;
 
-        subs.forEach((sub, i) => {
-          const angle = subCount === 1
-            ? 0
-            : startAngle + (endAngle - startAngle) * (i / (subCount - 1));
+        ringSubs.forEach((sub, i) => {
+          const angle = (2 * Math.PI * i) / ringSubs.length + angleOffset;
           const x = centerX + Math.sin(angle) * radius;
-          const y = centerY + Math.cos(angle) * radius + 70;
+          const y = centerY + Math.cos(angle) * radius;
 
           nodes.push({
             id: sub.session_id,
@@ -228,12 +247,15 @@ export default function SessionGraphView({
             target: sub.session_id,
             animated: sub.status === "running" || sub.status === "streaming",
             style: {
-              stroke: (sub.status === "running" || sub.status === "streaming") ? "#22c55e" : "#6366f1",
-              strokeWidth: 2,
+              stroke: (sub.status === "running" || sub.status === "streaming") ? "#22c55e" : "#6b728066",
+              strokeWidth: 1.5,
             },
             className: "motion-reduce:!transition-none motion-reduce:!animate-none",
           });
         });
+
+        placed += capacity;
+        ring += 1;
       }
     });
 
@@ -243,9 +265,17 @@ export default function SessionGraphView({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Update nodes when sessions change
+  // 数据刷新时同步节点，但保留用户拖动后的位置：
+  // 已存在的节点沿用当前 position（含拖动结果），只有新节点采用计算布局。
+  // 之前这里整体覆盖 setNodes(initialNodes)，导致每次轮询都把拖动打回原位。
   useEffect(() => {
-    setNodes(initialNodes);
+    setNodes((current) => {
+      const keptPositions = new Map(current.map((node) => [node.id, node.position]));
+      return initialNodes.map((node) => {
+        const kept = keptPositions.get(node.id);
+        return kept ? { ...node, position: kept } : node;
+      });
+    });
     setEdges(initialEdges);
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
@@ -273,11 +303,11 @@ export default function SessionGraphView({
         onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
         fitView
-        className="bg-slate-900"
+        style={{ background: "hsl(var(--background))" }}
       >
-        <Background color="#334155" gap={20} />
+        <Background color="#71717a55" gap={24} />
         <Controls
-          className="!bg-slate-800 !border-indigo-500/20 !rounded-lg"
+          className="!rounded-lg !border !border-border !shadow-sm !overflow-hidden"
         />
       </ReactFlow>
 
@@ -287,7 +317,7 @@ export default function SessionGraphView({
           id="session-tooltip"
           role="tooltip"
           aria-label={`会话 ${hoveredSession.session_id} 详情`}
-          className="fixed z-50 bg-slate-800 border border-slate-700 rounded-lg p-3 min-w-[220px] max-w-[320px] pointer-events-none shadow-lg"
+          className="fixed z-50 bg-card border border-border rounded-lg p-3 min-w-[220px] max-w-[320px] pointer-events-none shadow-lg"
           style={{
             left: Math.min(mousePos.x + 15, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 340),
             top: Math.min(mousePos.y + 15, (typeof window !== 'undefined' ? window.innerHeight : 800) - 200),
@@ -297,13 +327,13 @@ export default function SessionGraphView({
             <span className={`${cfg.color}`} aria-hidden="true">
               {STATUS_ICON_MAP[hoveredSession.status]}
             </span>
-            <span className="text-xs font-mono font-bold text-cyan-400">{hoveredSession.session_id}</span>
+            <span className="text-xs font-mono font-bold text-primary">{hoveredSession.session_id}</span>
             <span className={`text-xs ${cfg.color}`}>
               {STATUS_LABEL_MAP[hoveredSession.status] || hoveredSession.status}
             </span>
           </div>
           {hoveredSession.task && (
-            <p className="text-xs text-slate-300 mb-1.5">{truncate(hoveredSession.task, 80)}</p>
+            <p className="text-xs text-foreground/85 mb-1.5">{truncate(hoveredSession.task, 80)}</p>
           )}
           <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
             <span>消息: {hoveredSession.message_count}</span>
@@ -312,7 +342,7 @@ export default function SessionGraphView({
             <span>更新: {formatRelativeTime(hoveredSession.updated_at)}</span>
           </div>
           {hoveredSession.last_message && (
-            <div className="mt-1.5 text-xs text-slate-400 border-t border-border pt-1.5">
+            <div className="mt-1.5 text-xs text-muted-foreground border-t border-border pt-1.5">
               最新: {truncate(hoveredSession.last_message, 60)}
             </div>
           )}

@@ -36,19 +36,23 @@ interface TabConfig {
   activeClass: string;
 }
 
+/** 精密工作台风：所有页签统一为单一强调色的 active 态，不再各用一色 */
+const UNIFIED_ACTIVE_CLASS =
+  "data-[state=active]:bg-primary/15 data-[state=active]:text-primary";
+
 const CORE_TAB_METADATA: Record<CoreTabId, Omit<TabConfig, "value">> = {
-  chat: { icon: MessageSquare, label: "对话", activeClass: "data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400" },
-  dashboard: { icon: LayoutDashboard, label: "看板", activeClass: "data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400" },
-  graph: { icon: GitBranch, label: "图谱", activeClass: "data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400" },
-  roundtable: { icon: Users, label: "圆桌", activeClass: "data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400" },
-  orchestration: { icon: Layers, label: "编排", activeClass: "data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400" },
-  workflow: { icon: Workflow, label: "工作流", activeClass: "data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400" },
-  cron: { icon: Clock, label: "定时", activeClass: "data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400" },
-  skills: { icon: BookOpen, label: "Skills", activeClass: "data-[state=active]:bg-pink-500/20 data-[state=active]:text-pink-400" },
-  rules: { icon: BookOpen, label: "Rules", activeClass: "data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400" },
-  "system-prompt": { icon: FileText, label: "系统提示词", activeClass: "data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-400" },
-  settings: { icon: Settings, label: "配置", activeClass: "data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400" },
-  extensions: { icon: Boxes, label: "插件", activeClass: "data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400" },
+  chat: { icon: MessageSquare, label: "对话", activeClass: UNIFIED_ACTIVE_CLASS },
+  dashboard: { icon: LayoutDashboard, label: "看板", activeClass: UNIFIED_ACTIVE_CLASS },
+  graph: { icon: GitBranch, label: "图谱", activeClass: UNIFIED_ACTIVE_CLASS },
+  roundtable: { icon: Users, label: "圆桌", activeClass: UNIFIED_ACTIVE_CLASS },
+  orchestration: { icon: Layers, label: "编排", activeClass: UNIFIED_ACTIVE_CLASS },
+  workflow: { icon: Workflow, label: "工作流", activeClass: UNIFIED_ACTIVE_CLASS },
+  cron: { icon: Clock, label: "定时", activeClass: UNIFIED_ACTIVE_CLASS },
+  skills: { icon: BookOpen, label: "Skills", activeClass: UNIFIED_ACTIVE_CLASS },
+  rules: { icon: BookOpen, label: "Rules", activeClass: UNIFIED_ACTIVE_CLASS },
+  "system-prompt": { icon: FileText, label: "系统提示词", activeClass: UNIFIED_ACTIVE_CLASS },
+  settings: { icon: Settings, label: "配置", activeClass: UNIFIED_ACTIVE_CLASS },
+  extensions: { icon: Boxes, label: "插件", activeClass: UNIFIED_ACTIVE_CLASS },
 };
 
 const CORE_TAB_CONFIG: TabConfig[] = CORE_TAB_IDS.map((value) => ({
@@ -142,9 +146,9 @@ function App() {
     <DesktopUpdateProvider>
       <ToastProvider>
         <FirstRunOnboarding>
-          <div className="flex h-dvh flex-col overflow-hidden bg-slate-900">
+          <div className="flex h-dvh flex-col overflow-hidden bg-background">
             {/* Top Navigation Bar */}
-            <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50">
+            <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/85 backdrop-blur-md border-b border-border/70">
               <div className="h-full flex items-center gap-3 px-4">
                 {/* Brand */}
                 <div className="flex shrink-0 items-center gap-3">
@@ -153,7 +157,7 @@ function App() {
                     className="h-8 w-8 shrink-0"
                   />
                   <h1
-                    className="hidden text-lg font-semibold tracking-tight text-slate-100 2xl:block"
+                    className="hidden text-lg font-semibold tracking-tight text-foreground 2xl:block"
                     aria-hidden="true"
                   >
                     {PRODUCT_NAME}
@@ -163,7 +167,7 @@ function App() {
                 {/* Tabs */}
                 <Tabs className="min-w-0 flex-1" value={activeTab} onValueChange={handleTabChange}>
                   <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <TabsList className="w-max justify-start bg-slate-800/80 border border-slate-700/50" role="tablist" aria-label="主导航">
+                    <TabsList className="w-max justify-start bg-secondary/50 border border-border/60" role="tablist" aria-label="主导航">
                       {tabs.map((tab) => {
                         const Icon = tab.icon;
                         return (

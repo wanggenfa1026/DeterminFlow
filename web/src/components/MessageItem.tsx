@@ -1,3 +1,4 @@
+import { hasVisibleText } from "@/lib/visibleText";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -68,7 +69,7 @@ export default function MessageItem({ message, index }: MessageItemProps) {
 
       {expanded && (
         <div className="mt-2 space-y-2" role="list" aria-label="消息详情">
-          {message.content && (
+          {hasVisibleText(message.content) && (
             <div className="text-xs text-slate-300 bg-slate-900/60 rounded p-2 max-h-48 overflow-y-auto">
               <div className="text-xs text-muted-foreground mb-1">Content:</div>
               <div className="whitespace-pre-wrap break-words">{message.content}</div>
@@ -91,9 +92,9 @@ export default function MessageItem({ message, index }: MessageItemProps) {
         </div>
       )}
 
-      {!expanded && message.content && (
+      {!expanded && hasVisibleText(message.content) && (
         <p className="text-xs text-muted-foreground mt-1 truncate" title={message.content}>
-          {message.content.slice(0, 80)}
+          {(message.content ?? "").slice(0, 80)}
         </p>
       )}
     </div>

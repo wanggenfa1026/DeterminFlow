@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { useSystemStatus } from "../hooks/useSystemStatus";
 import { useSessions } from "../hooks/useSessions";
 import StatsCards from "../components/StatsCards";
@@ -50,9 +49,9 @@ export default function DashboardPage() {
     return (
       <div className="h-[calc(100dvh-3.5rem)] flex flex-col items-center justify-center gap-3" role="status" aria-label="加载中" aria-live="polite">
         <div className="flex gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-cyan-500/60 animate-pulse motion-reduce:animate-none [animation-delay:0ms]" aria-hidden="true" />
-          <span className="w-2 h-2 rounded-full bg-cyan-500/60 animate-pulse motion-reduce:animate-none [animation-delay:150ms]" aria-hidden="true" />
-          <span className="w-2 h-2 rounded-full bg-cyan-500/60 animate-pulse motion-reduce:animate-none [animation-delay:300ms]" aria-hidden="true" />
+          <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse motion-reduce:animate-none [animation-delay:0ms]" aria-hidden="true" />
+          <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse motion-reduce:animate-none [animation-delay:150ms]" aria-hidden="true" />
+          <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse motion-reduce:animate-none [animation-delay:300ms]" aria-hidden="true" />
         </div>
         <span className="text-sm text-muted-foreground">加载系统状态...</span>
       </div>
@@ -61,7 +60,7 @@ export default function DashboardPage() {
 
   return (
     <ScrollArea className="h-[calc(100dvh-3.5rem)]">
-      <div className="p-6 space-y-8 max-w-[1400px] mx-auto" role="main" aria-label="仪表盘">
+      <div className="p-6 space-y-4 max-w-[1400px] mx-auto" role="main" aria-label="仪表盘">
         {/* Stats Cards Row */}
         <section aria-label="系统指标概览">
           <StatsCards status={status} />
@@ -73,17 +72,17 @@ export default function DashboardPage() {
         </section>
 
         {/* Tool Stats & Prompt Timeline */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 max-h-[350px] overflow-y-auto rounded-lg" role="region" aria-label="工具调用统计">
             <ToolStatsPanel tools={tools} stats={status.event_bus_stats} />
           </div>
           <div className="max-h-[350px] overflow-y-auto rounded-lg" role="region" aria-label="提示词历史时间线">
             {historyError ? (
-              <div className="bg-slate-800/80 border border-slate-700/50 rounded-lg p-4 h-full flex flex-col items-center justify-center gap-2" role="alert">
+              <div className="bg-card/50 border border-border rounded-lg p-4 h-full flex flex-col items-center justify-center gap-2" role="alert">
                 <span className="text-sm text-red-400">加载提示词历史失败</span>
                 <button
                   onClick={loadHistory}
-                  className="text-xs text-cyan-500 hover:underline cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-cyan-500/30 rounded"
+                  className="text-xs text-primary hover:underline cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary/30 rounded"
                   aria-label="重新加载提示词历史"
                 >
                   重试
@@ -96,16 +95,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Compression Monitor */}
-        <section className="bg-slate-800/80 border border-slate-700/50 rounded-lg p-5" aria-label="压缩状态监控">
-          <h3 className="text-xs font-semibold text-muted-foreground/70 mb-3">压缩状态监控</h3>
+        <section className="bg-card/50 border border-border rounded-lg p-4" aria-label="压缩状态监控">
+          <h3 className="text-xs font-medium text-foreground/80 mb-3">压缩状态监控</h3>
           <div className="max-h-[300px] overflow-y-auto rounded">
             <CompressionMonitorPanel compact={true} />
           </div>
         </section>
 
         {/* Compression Logs */}
-        <section className="bg-slate-800/80 border border-slate-700/50 rounded-lg p-5" aria-label="压缩日志">
-          <h3 className="text-xs font-semibold text-muted-foreground/70 mb-3">压缩日志</h3>
+        <section className="bg-card/50 border border-border rounded-lg p-4" aria-label="压缩日志">
+          <h3 className="text-xs font-medium text-foreground/80 mb-3">压缩日志</h3>
           <div className="max-h-[300px] overflow-y-auto rounded">
             <CompressionLogsPanel compact={true} />
           </div>
@@ -127,7 +126,7 @@ function StatusDot({ status }: { status: string }) {
         style={{ backgroundColor: style.bg }}
         aria-hidden="true"
       />
-      <span className="text-xs text-slate-300">{status}</span>
+      <span className="text-xs text-foreground/75">{status}</span>
       <span className="sr-only">{style.label}</span>
     </span>
   );
@@ -135,18 +134,20 @@ function StatusDot({ status }: { status: string }) {
 
 function SessionsTable({ sessions }: { sessions: Session[] }) {
   return (
-    <div className="bg-slate-800/80 border border-slate-700/50 rounded-lg p-5">
-      <h3 className="text-xs font-semibold text-muted-foreground/70 mb-3">会话实时状态</h3>
+    <div className="overflow-hidden rounded-lg border border-border bg-card/50">
+      <header className="flex h-10 items-center border-b border-border/60 px-4">
+        <h3 className="text-xs font-medium text-foreground/80">会话实时状态</h3>
+      </header>
       <div className="overflow-x-auto">
         <table className="w-full text-sm" aria-label="会话列表">
           <thead>
-            <tr className="text-xs text-muted-foreground/60 border-b border-border/40">
-              <th scope="col" className="text-left py-2.5 px-3 font-medium">ID</th>
-              <th scope="col" className="text-left py-2.5 px-3 font-medium">类型</th>
-              <th scope="col" className="text-left py-2.5 px-3 font-medium">状态</th>
-              <th scope="col" className="text-left py-2.5 px-3 font-medium">任务</th>
-              <th scope="col" className="text-right py-2.5 px-3 font-medium">消息数</th>
-              <th scope="col" className="text-right py-2.5 px-3 font-medium">更新时间</th>
+            <tr className="border-b border-border/50 bg-muted/30 text-[11px] uppercase tracking-wider text-muted-foreground/70">
+              <th scope="col" className="py-2 px-4 text-left font-medium">ID</th>
+              <th scope="col" className="py-2 px-4 text-left font-medium">类型</th>
+              <th scope="col" className="py-2 px-4 text-left font-medium">状态</th>
+              <th scope="col" className="w-full py-2 px-4 text-left font-medium">任务</th>
+              <th scope="col" className="py-2 px-4 text-right font-medium">消息数</th>
+              <th scope="col" className="py-2 px-4 text-right font-medium">更新时间</th>
             </tr>
           </thead>
           <tbody>
@@ -161,37 +162,36 @@ function SessionsTable({ sessions }: { sessions: Session[] }) {
                 return (
                   <tr
                     key={session.session_id}
-                    className="border-b border-border/30 hover:bg-white/[0.02] transition-colors duration-200"
+                    className="border-b border-border/40 transition-colors last:border-b-0 hover:bg-accent/40"
                     role="row"
                   >
-                    <td className="py-2.5 px-3">
-                      <span className="font-mono text-xs text-cyan-400">{session.session_id}</span>
+                    <td className="py-2 px-4">
+                      <span className="font-mono text-xs text-primary">{session.session_id}</span>
                     </td>
-                    <td className="py-2.5 px-3">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs font-medium ${
+                    <td className="py-2 px-4">
+                      <span
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-4 ${
                           session.type === "main"
-                            ? "text-indigo-400 border-indigo-500/20"
-                            : "text-muted-foreground/50 border-muted-foreground/15"
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted/60 text-muted-foreground"
                         }`}
                       >
                         {session.type === "main" ? "MAIN" : "SUB"}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="py-2.5 px-3">
+                    <td className="py-2 px-4 whitespace-nowrap">
                       <StatusDot status={session.status} />
                     </td>
-                    <td className="py-2.5 px-3 max-w-[200px]">
-                      <span className="text-xs text-slate-400 truncate block" title={session.task || undefined}>
+                    <td className="max-w-0 w-full py-2 px-4">
+                      <span className="block truncate text-xs text-muted-foreground" title={session.task || undefined}>
                         {truncate(session.task || (session.type === "main" ? "主会话" : "-"), 40)}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums">
-                      <span className="text-xs text-muted-foreground/60">{session.message_count}</span>
+                    <td className="py-2 px-4 text-right tabular-nums">
+                      <span className="text-xs text-muted-foreground">{session.message_count}</span>
                     </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums">
-                      <span className="text-xs text-muted-foreground/60">{formatTime(session.updated_at)}</span>
+                    <td className="py-2 px-4 text-right tabular-nums whitespace-nowrap">
+                      <span className="text-xs text-muted-foreground/70">{formatTime(session.updated_at)}</span>
                     </td>
                   </tr>
                 );

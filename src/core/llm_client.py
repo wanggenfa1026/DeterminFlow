@@ -284,6 +284,40 @@ def _wrap_llm_with_retry(llm: BaseChatModel, retry_config: dict) -> BaseChatMode
             )
         return tuple(tracked_args), tracked_kwargs
 
+    def _retry_after_hint_seconds(error):
+        """从异常的响应头或错误体里读取上游明示的 Retry-After（秒）。"""
+        candidates = []
+        response = getattr(error, "response", None)
+        headers = getattr(response, "headers", None)
+        if headers is not None:
+            try:
+                candidates.append(headers.get("retry-after") or headers.get("Retry-After"))
+            except Exception:
+                pass
+        body = getattr(error, "body", None)
+        if isinstance(body, dict):
+            candidates.append(body.get("retry_after"))
+            detail = body.get("error")
+            if isinstance(detail, dict):
+                candidates.append(detail.get("retry_after"))
+        for raw in candidates:
+            if raw is None:
+                continue
+            try:
+                value = float(str(raw).strip())
+            except (TypeError, ValueError):
+                continue
+            if 0 < value <= 300:
+                return value
+        return None
+
+    def _effective_delay(base_delay, error):
+        # 上游明示了冷却期就等满它：提前重试必然落在未恢复窗口内，纯属浪费。
+        hint = _retry_after_hint_seconds(error)
+        if hint is not None and hint > base_delay:
+            return hint
+        return base_delay
+
     def _mark_failed_provider_usage(error, *, partial_stream_emitted):
         # Failed provider calls frequently have no final usage payload. Keep
         # this explicit on the propagated error in addition to the audit log.
@@ -341,7 +375,7 @@ def _wrap_llm_with_retry(llm: BaseChatModel, retry_config: dict) -> BaseChatMode
                     )
                     raise
                 if attempt < max_retries:
-                    delay = delays[attempt]
+                    delay = _effective_delay(delays[attempt], e)
                     logger.warning(
                         f"LLM ainvoke 失败，将重试 "
                         f"(attempt {attempt + 1}/{max_retries}, "
@@ -389,7 +423,7 @@ def _wrap_llm_with_retry(llm: BaseChatModel, retry_config: dict) -> BaseChatMode
                     )
                     raise
                 if attempt < max_retries:
-                    delay = delays[attempt]
+                    delay = _effective_delay(delays[attempt], e)
                     logger.warning(
                         f"LLM astream 失败，将重试 "
                         f"(attempt {attempt + 1}/{max_retries}, "
@@ -492,6 +526,11 @@ def create_llm(
         # LangChain clients have their own SDK retry policy in addition to the
         # Core wrapper below. One-shot callers must disable both layers.
         kwargs["max_retries"] = 0
+    else:
+        # 只保留 Core wrapper 这一层重试。SDK 默认还会自己重试 2 次，
+        # 两层相乘（最坏 4×3=12 个请求）叠加上游 Retry-After 时
+        # 单次调用可空转约 9 分钟（2026-08-29 优化分析实测）。
+        kwargs.setdefault("max_retries", 0)
     try:
         api_format = model_manager.get_provider_api_format(provider_id, model_name)
         client_base_url = model_manager.get_provider_client_base_url(

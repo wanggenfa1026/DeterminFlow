@@ -14,7 +14,12 @@ const ScrollArea = React.forwardRef<
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+    <ScrollAreaPrimitive.Viewport
+      // Radix 的 Viewport 内部会生成一层 display:table 的包裹元素，
+      // 它按内容宽度撑开而非跟随容器，导致窄面板里的文字被裁切。
+      // 强制该包裹层为 block + 满宽，内容才会正确换行。
+      className="h-full w-full rounded-[inherit] [&>div]:!block [&>div]:!w-full [&>div]:min-w-0"
+    >
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />

@@ -113,6 +113,22 @@ def safe_repair_json_text(text: str) -> tuple[str, list[str]]:
         candidate = unfenced
         repairs.append("strip_markdown_fence")
 
+    # 先在未做引号归一化的原文上找完整可解析的 JSON 载荷。
+    # 中文正文字符串里的弯引号（“”）一旦被 normalize 成 ASCII 引号，
+    # 会把本来合法的 JSON 字符串提前截断（2026-08-29 第三章事故根因），
+    # 所以归一化只能作为后续兜底手段，不能在提取前全文执行。
+    best = _select_best_json_candidate(candidate)
+    if best is not None:
+        if best != candidate:
+            repairs.append("extract_json_body")
+        candidate = best
+        if _try_loads(candidate):
+            return candidate, repairs
+        no_trailing = _remove_trailing_commas(candidate)
+        if no_trailing != candidate and _try_loads(no_trailing):
+            repairs.append("remove_trailing_commas")
+            return no_trailing, repairs
+
     normalized = _normalize_quotes(candidate)
     if normalized != candidate:
         candidate = normalized
@@ -183,6 +199,14 @@ def _normalize_quotes(text: str) -> str:
 
 
 def _extract_json_body(text: str) -> str:
+    # LLM 常见输出形态是「说明文字 + 末尾完整 JSON」，说明文字里出现的
+    # 括号或小示例片段会早于真实载荷。盲取第一个括号会把整章正文丢掉
+    # （2026-08-29 第三章事故：chapter.json 只落盘了开头一段工作说明）。
+    # 因此扫描全部平衡候选，取能通过解析的最长者（并列取靠后），
+    # 全部候选都不可解析时才回退到旧的「第一个括号」行为。
+    best = _select_best_json_candidate(text)
+    if best is not None:
+        return best
     start_positions = [(text.find("{"), "{"), (text.find("["), "[")]
     start_positions = [(idx, ch) for idx, ch in start_positions if idx != -1]
     if not start_positions:
@@ -192,6 +216,38 @@ def _extract_json_body(text: str) -> str:
     end = _find_matching_bracket(text, start, opening, closing)
     if end == -1:
         return text[start:].strip()
+    return text[start : end + 1].strip()
+
+
+def _select_best_json_candidate(text: str) -> str | None:
+    """列出文本中全部平衡的顶层 {} / [] 片段，返回可解析的最长者。"""
+    candidates: list[tuple[int, int]] = []
+    pos = 0
+    length = len(text)
+    while pos < length and len(candidates) < 64:
+        next_positions = [
+            idx for idx in (text.find("{", pos), text.find("[", pos)) if idx != -1
+        ]
+        if not next_positions:
+            break
+        start = min(next_positions)
+        opening = text[start]
+        closing = "}" if opening == "{" else "]"
+        end = _find_matching_bracket(text, start, opening, closing)
+        if end == -1:
+            pos = start + 1
+            continue
+        candidates.append((start, end))
+        pos = end + 1
+
+    valid: list[tuple[int, int]] = []
+    for start, end in candidates:
+        span = text[start : end + 1]
+        if _try_loads(span) or _try_loads(_remove_trailing_commas(span)):
+            valid.append((start, end))
+    if not valid:
+        return None
+    start, end = max(valid, key=lambda item: (item[1] - item[0], item[0]))
     return text[start : end + 1].strip()
 
 

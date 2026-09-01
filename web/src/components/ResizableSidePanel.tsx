@@ -105,8 +105,8 @@ function ResizableSidePanel({
         aria-orientation="vertical"
         aria-label="调整侧边面板宽度，使用左右箭头键调整"
         tabIndex={0}
-        className={`absolute left-0 top-0 bottom-0 hidden w-1 cursor-col-resize hover:bg-indigo-500/30 transition-colors z-10 group md:block ${
-          isResizing ? "bg-indigo-500/50" : ""
+        className={`absolute left-0 top-0 bottom-0 hidden w-1 cursor-col-resize hover:bg-primary/30 transition-colors z-10 group md:block ${
+          isResizing ? "bg-primary/50" : ""
         }`}
       >
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -128,9 +128,9 @@ function ResizableSidePanel({
               role="tab"
               aria-selected={sidePanel === key}
               aria-controls={`panel-${key}`}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors cursor-pointer min-h-[44px] ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors cursor-pointer min-h-9 ${
                 sidePanel === key
-                  ? "text-indigo-500 border-b-2 border-indigo-500"
+                  ? "text-foreground border-b border-primary"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -142,7 +142,7 @@ function ResizableSidePanel({
         <button
           type="button"
           onClick={onMobileClose}
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:bg-slate-800 hover:text-foreground md:hidden"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
           aria-label="关闭侧边面板"
         >
           <X size={16} aria-hidden="true" />

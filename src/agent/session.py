@@ -3066,10 +3066,11 @@ class AgentSession:
             data = self.to_dict()
             # 整体序列化：不可序列化的值统一转 str
             try:
-                serialized = json.dumps(data, ensure_ascii=False, indent=2)
+                # 不缩进：indent 会禁用 CPython 的 C 编码器，2MB 会话实测慢 2 倍
+                serialized = json.dumps(data, ensure_ascii=False)
             except (TypeError, ValueError):
                 # 降级：逐字段清理不可序列化的值
-                serialized = json.dumps(self._sanitize_dict(data), ensure_ascii=False, indent=2)
+                serialized = json.dumps(self._sanitize_dict(data), ensure_ascii=False)
             # 临时文件名带 PID：拆分执行器模式下 Controller 与 Executor 可能同时
             # 写同一个 session 文件，固定后缀会让两个进程互相覆盖对方的半成品。
             # 与 executor_pool / executor_transport 的写法保持一致。

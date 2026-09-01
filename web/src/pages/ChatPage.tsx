@@ -44,7 +44,7 @@ import { normalizeFailedTurn } from "../features/conversation/normalizeConversat
 import { ConversationComposer, ConversationTimeline } from "../components/conversation";
 import ApprovalPanel from "../components/ApprovalPanel";
 import ResizableSidePanel from "../components/ResizableSidePanel";
-import MonitoringCard from "../components/MonitoringCard";
+import TokenStatusBar from "../components/TokenStatusBar";
 import ModelSwitcher from "../components/ModelSwitcher";
 import { shouldShowModelSwitcher } from "../lib/model-options";
 import ChatWorkflowTasks, { upsertWorkflowTask } from "../components/workflow/ChatWorkflowTasks";
@@ -161,7 +161,6 @@ export default function ChatPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   // 监控卡片折叠状态（默认折叠）
-  const [monitoringCollapsed, setMonitoringCollapsed] = useState(true);
 
   // 实时 LLM 上下文状态
   const [llmContext, setLlmContext] = useState<Awaited<ReturnType<typeof fetchSessionSystemPrompt>> | null>(null);
@@ -488,33 +487,25 @@ export default function ChatPage() {
     return map;
   }, [displayMessages]);
 
+  // 稳定引用：内联箭头函数每次渲染都是新引用，会击穿时间线子组件的 memo
+  const isMessageEditable = useCallback(
+    (message: Message) =>
+      message.type === "user" && !!message.id && editableMap.has(message.id),
+    [editableMap],
+  );
+
   // 会话列表按 updated_at 降序排序（最近活跃的在前）
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => b.updated_at.localeCompare(a.updated_at)),
     [sessions],
   );
-  const handleMonitoringToggle = useCallback(() => {
-    setMonitoringCollapsed((value) => !value);
-  }, []);
-
   return (
-    <div className="relative flex h-[calc(100dvh-3.5rem)]">
-      {/* Token 监控竖向边栏 - 左侧，可折叠 */}
-      <div
-        className={`shrink-0 flex flex-col transition-all duration-300 ${monitoringCollapsed ? "w-7" : "w-64"}`}
-        role="complementary"
-        aria-label="Token 监控面板"
-      >
-        <div className={`h-full ${monitoringCollapsed ? "px-1" : "px-2"} py-3 overflow-y-auto`}>
-          <MonitoringCard
-            tokenUsage={tokenUsage}
-            collapsed={monitoringCollapsed}
-            onToggle={handleMonitoringToggle}
-          />
-        </div>
-      </div>
-
-      {/* Main Chat Area */}
+    <div className="relative flex h-[calc(100dvh-3.5rem)] overflow-hidden">
+      <ChatWorkflowTasks
+        tasks={workflowTasks}
+        loading={workflowTasksLoading}
+        onOpenTask={handleOpenWorkflowTask}
+      />
       <div className="flex-1 flex flex-col min-w-0 min-h-0" role="main" aria-label="聊天区域">
         <button
           type="button"
@@ -535,12 +526,6 @@ export default function ChatPage() {
           onClearResolved={clearResolved}
         />
 
-        <ChatWorkflowTasks
-          tasks={workflowTasks}
-          loading={workflowTasksLoading}
-          onOpenTask={handleOpenWorkflowTask}
-        />
-
         <ConversationTimeline
           messages={displayMessages}
           streamingSegments={streamingSegments}
@@ -555,9 +540,7 @@ export default function ChatPage() {
           readonly={isReadOnly}
           onEditMessage={handleEditDisplayedMessage}
           onCommand={isReadOnly ? undefined : sendCommand}
-          isMessageEditable={(message) =>
-            message.type === "user" && !!message.id && editableMap.has(message.id)
-          }
+          isMessageEditable={isMessageEditable}
           ariaLabel="聊天消息"
           contentClassName="w-full max-w-4xl mx-auto px-6 py-4"
           emptyState={(
@@ -629,6 +612,7 @@ export default function ChatPage() {
                 <Minimize2 size={12} aria-hidden="true" />
                 {compressing ? "压缩中..." : "压缩上下文"}
               </button>
+              <TokenStatusBar tokenUsage={tokenUsage} />
             </div>
 
             <ConversationComposer

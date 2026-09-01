@@ -48,7 +48,7 @@ function CountdownBar({ expiresAt }: { expiresAt: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden" role="progressbar" aria-valuenow={remaining} aria-valuemin={0} aria-valuemax={100} aria-label={`审批超时倒计时 ${seconds} 秒`}>
+      <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={remaining} aria-valuemin={0} aria-valuemax={100} aria-label={`审批超时倒计时 ${seconds} 秒`}>
         <div
           className={`h-full rounded-full transition-all duration-500 ${
             remaining > 50 ? "bg-green-500" : remaining > 20 ? "bg-amber-500" : "bg-red-500"
@@ -111,7 +111,7 @@ function ApprovalPanel({
       {pendingApprovals.map((request) => (
         <div
           key={request.request_id}
-          className="bg-slate-800/40 border border-amber-500/20 rounded-xl px-4 py-3 space-y-2 animate-slide-in"
+          className="rounded-md border border-border bg-card px-3 py-2.5 space-y-2 animate-slide-in"
           role="alert"
           aria-label={`审批请求: ${request.command}`}
         >
@@ -119,7 +119,7 @@ function ApprovalPanel({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield size={14} className="text-amber-500" aria-hidden="true" />
-              <span className="text-xs font-medium text-amber-500">命令审批请求</span>
+              <span className="text-xs font-medium text-foreground/80">命令审批请求</span>
               <span className="text-xs text-muted-foreground font-mono">
                 {request.request_id.slice(0, 8)}
               </span>
@@ -131,7 +131,7 @@ function ApprovalPanel({
           </div>
 
           {/* 命令内容 */}
-          <div className="flex items-start gap-2 px-3 py-2 rounded bg-slate-900 border border-slate-700">
+          <div className="flex items-start gap-2 rounded bg-muted/40 px-2.5 py-2 border border-border/60">
             <Terminal size={12} className="text-amber-500 mt-0.5 flex-shrink-0" aria-hidden="true" />
             <code className="text-xs font-mono text-amber-500 break-all">
               {request.command}
@@ -152,9 +152,9 @@ function ApprovalPanel({
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={() => onApprove(request.request_id)}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium
-                bg-green-500/20 text-green-500 border border-green-500/30
-                hover:bg-green-500/30 transition-all cursor-pointer min-h-[44px]"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium
+                text-primary-foreground transition-colors hover:bg-primary/90
+                focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
               aria-label={`批准命令: ${request.command}`}
             >
               <Check size={14} aria-hidden="true" />
@@ -162,9 +162,10 @@ function ApprovalPanel({
             </button>
             <button
               onClick={() => onReject(request.request_id)}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium
-                bg-red-500/20 text-red-500 border border-red-500/30
-                hover:bg-red-500/30 transition-all cursor-pointer min-h-[44px]"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs
+                font-medium text-muted-foreground transition-colors hover:border-red-500/40
+                hover:bg-red-500/10 hover:text-red-400
+                focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
               aria-label={`拒绝命令: ${request.command}`}
             >
               <X size={14} aria-hidden="true" />

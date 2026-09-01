@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
@@ -489,14 +490,37 @@ class WorkflowDef:
                         stack.append(next_id)
                 branch_reachable.append(reachable)
 
-            # 找到所有分支都能到达的汇聚网关
+            # 找到所有分支都能到达的、离并行网关最近的汇聚网关。
+            # 注意：不能按 gateways 列表顺序取第一个匹配——多组并行网关级联时，
+            # 下游远处的汇聚网关同样"所有分支可达"，若列表序在前会被错误命中，
+            # 导致两网关之间的节点全部被跳过。改用从并行网关出发的 BFS 层序，
+            # 保证取到图上最近的公共汇聚网关。
+            stored_cid = pg.converge_gateway_id
+            if (
+                stored_cid
+                and stored_cid in converge_gws
+                and stored_cid != pg.id
+                and all(stored_cid in reachable for reachable in branch_reachable)
+            ):
+                # 定义中已显式存储且校验通过的配对直接沿用
+                continue
+
             pg.converge_gateway_id = None
-            for cid, cg in converge_gws.items():
-                if cid == pg.id:
-                    continue
-                if all(cid in reachable for reachable in branch_reachable):
-                    pg.converge_gateway_id = cid
+            bfs_queue: deque[str] = deque(adj.get(pg.id, []))
+            bfs_seen: set[str] = {pg.id, *adj.get(pg.id, [])}
+            while bfs_queue:
+                cur = bfs_queue.popleft()
+                if (
+                    cur in converge_gws
+                    and cur != pg.id
+                    and all(cur in reachable for reachable in branch_reachable)
+                ):
+                    pg.converge_gateway_id = cur
                     break
+                for next_id in adj.get(cur, []):
+                    if next_id not in bfs_seen:
+                        bfs_seen.add(next_id)
+                        bfs_queue.append(next_id)
 
             if pg.converge_gateway_id is None:
                 errors.append(f"并行网关 {pg.label or pg.id} 缺少对应的汇聚网关")

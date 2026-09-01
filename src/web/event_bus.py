@@ -190,8 +190,10 @@ class EventBus:
         self._roundtable_revisions: dict[str, int] = {}
 
         # 事件日志（最近 500 条）
-        self._event_log: list[dict] = []
         self._max_log_size = 500
+        # deque(maxlen)：满员后 append 自动挤出最旧项，
+        # 替代原先每个事件都重建 500 元素列表切片的做法
+        self._event_log: deque[dict] = deque(maxlen=self._max_log_size)
 
         # 统计数据
         self._tool_call_counts: dict[str, int] = {}
@@ -428,8 +430,22 @@ class EventBus:
             "generation_id": stream["generation_id"],
             "revision": stream["revision"],
             "baseline_record_length": stream.get("baseline_record_length"),
-            "segments": deepcopy(stream["segments"]),
+            "segments": self._materialized_segments(stream["segments"]),
         }
+
+    @staticmethod
+    def _materialized_segments(segments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """把内部 parts 累积形态转换回对外的 content 字符串形态。"""
+        result: list[dict[str, Any]] = []
+        for segment in segments:
+            parts = segment.get("_parts")
+            if parts is not None:
+                cleaned = {k: v for k, v in segment.items() if k != "_parts"}
+                cleaned["content"] = "".join(parts)
+                result.append(cleaned)
+            else:
+                result.append(deepcopy(segment))
+        return result
 
     def clear_session(self, session_id: str) -> None:
         """清除已终止或删除会话的进程内流恢复状态。"""
@@ -501,10 +517,17 @@ class EventBus:
             content = str(event.get("content") or "")
             if not content:
                 return
+            # 用 parts 列表累积，读取时再 join。原先对 dict 值做 += 拼接
+            # 吃不到 CPython 的原地拼接优化，25K token 的生成累计 ~275ms
             if segments and segments[-1].get("type") == segment_type:
-                segments[-1]["content"] += content
+                segment = segments[-1]
+                parts = segment.get("_parts")
+                if parts is None:
+                    parts = [segment.get("content", "")]
+                    segment["_parts"] = parts
+                parts.append(content)
             else:
-                segments.append({"type": segment_type, "content": content})
+                segments.append({"type": segment_type, "content": "", "_parts": [content]})
             return
 
         tool_indices: dict[int, int] = stream["tool_indices"]
@@ -647,14 +670,12 @@ class EventBus:
             **event,
             "_recorded_at": time.time(),
         })
-        if len(self._event_log) > self._max_log_size:
-            self._event_log = self._event_log[-self._max_log_size:]
 
     def get_recent_events(
         self, limit: int = 50, event_type: str | None = None
     ) -> list[dict]:
         """获取最近的事件日志"""
-        events = self._event_log
+        events = list(self._event_log)
         if event_type:
             events = [e for e in events if e.get("type") == event_type]
         return events[-limit:]

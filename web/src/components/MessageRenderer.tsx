@@ -1,3 +1,4 @@
+import { hasVisibleText, stripInvisible } from "@/lib/visibleText";
 import { useState, useRef, useEffect } from "react";
 import { Edit3, Bot, AlertTriangle, ChevronRight, ChevronDown } from "lucide-react";
 import { Message } from "../types";
@@ -104,7 +105,7 @@ const UserMsg: MsgComponent = ({ message, onEdit, editable, streaming, readonly 
             <Bot size={14} className="text-purple-500" aria-hidden="true" />
             <span className="text-xs font-mono text-purple-500">Agent {agentId}</span>
           </div>
-          <div className="px-4 py-3 rounded-2xl rounded-bl-md border border-purple-500/30 bg-purple-500/10">
+          <div className="px-4 py-3 rounded-lg border border-border bg-muted/40">
             <MarkdownRenderer content={userContent} className="text-sm" />
           </div>
         </div>
@@ -167,7 +168,7 @@ const UserMsg: MsgComponent = ({ message, onEdit, editable, streaming, readonly 
               <span className="text-xs opacity-60">({message.injection_meta.length}项)</span>
             </button>
             {injectionExpanded && (
-              <div className="mt-1 p-2 rounded-md bg-slate-800/40 border border-border/30" role="list" aria-label="注入信息详情">
+              <div className="mt-1 p-2 rounded-md bg-muted/40 border border-border/30" role="list" aria-label="注入信息详情">
                 {message.injection_meta.map((meta, index) => (
                   <div key={index} className="text-xs text-muted-foreground/50 py-0.5" role="listitem">
                     <span className="font-medium">{meta.name}:</span> {meta.content}
@@ -181,7 +182,7 @@ const UserMsg: MsgComponent = ({ message, onEdit, editable, streaming, readonly 
         {/* 用户消息内容 */}
         <div className="group relative">
           {editing ? (
-            <div className="px-4 py-3 rounded-2xl rounded-br-md bg-indigo-500/20 border border-indigo-500/30 text-slate-100">
+            <div className="px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/15 text-foreground">
               <textarea
                 ref={textareaRef}
                 value={editContent}
@@ -218,7 +219,7 @@ const UserMsg: MsgComponent = ({ message, onEdit, editable, streaming, readonly 
               </div>
             </div>
           ) : (
-            <div className="px-4 py-3 rounded-2xl rounded-br-md bg-indigo-500/20 border border-indigo-500/30 text-slate-100">
+            <div className="px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/15 text-foreground">
               <UserMessageContent message={message} content={userContent} />
             </div>
           )}
@@ -247,9 +248,9 @@ const AssistantMsg: MsgComponent = ({ message }) => {
         {message.reasoning_content && (
           <ThinkingChain content={message.reasoning_content} isStreaming={false} />
         )}
-        {message.content && (
-          <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-slate-800/50 border border-slate-700/50">
-            <MarkdownRenderer content={message.content} className="text-sm" />
+        {hasVisibleText(message.content) && (
+          <div className="px-1">
+            <MarkdownRenderer content={stripInvisible(message.content)} className="text-sm leading-7 text-foreground/90" />
           </div>
         )}
         {message.tool_calls && message.tool_calls.length > 0 && (
@@ -309,7 +310,7 @@ const SystemPromptMsg: MsgComponent = () => null; // 不渲染
 const ErrorFallback: MsgComponent = ({ message }) => {
   return (
     <div className="flex justify-start mb-4" role="alert" aria-label="未知消息类型">
-      <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-bl-md bg-slate-800/50 border border-red-500/30">
+      <div className="max-w-[85%] px-4 py-3 rounded-lg bg-muted/40 border border-red-500/30">
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle size={14} className="text-red-400" aria-hidden="true" />
           <span className="text-xs text-red-400">未知消息类型: {message.type || "(无)"}</span>

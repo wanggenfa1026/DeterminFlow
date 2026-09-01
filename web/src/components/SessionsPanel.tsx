@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { Trash2, X, Plus, ChevronDown, ChevronRight, Zap } from "lucide-react";
 import { Session } from "../types";
-import { getStatusConfig, formatRelativeTime, truncate } from "../lib/utils-helpers";
+import { getStatusConfig, formatRelativeTime } from "../lib/utils-helpers";
 import { useAgentTypes } from "../hooks/useAgentTypes";
 import { canDeleteMainSession } from "./sessionPolicy";
 
@@ -54,75 +53,60 @@ function SessionCard({
       onClick={() => onViewSession(session.session_id)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onViewSession(session.session_id); } }}
       aria-label={`${session.type === "main" ? "主会话" : "子会话"} ${session.session_id}，${session.task || ""}`}
-      className={`bg-slate-800/50 border border-slate-700/50 rounded-lg transition-all cursor-pointer group relative ${
-        isSub ? "px-1.5 py-1 ml-4" : "px-3 py-2.5"
+      className={`group relative cursor-pointer rounded-md transition-colors ${
+        isSub ? "py-1.5 pl-6 pr-2" : "px-2 py-2"
       } ${
-        isViewing
-          ? "border-indigo-500/60 bg-indigo-500/10 shadow-lg shadow-indigo-500/10"
-          : "hover:border-indigo-500/30"
+        isViewing ? "bg-accent" : "hover:bg-accent/50"
       }`}
     >
-      {isViewing && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-indigo-500 rounded-r" />
-      )}
 
-      <div className={`flex items-center justify-between ${isSub ? "mb-0.5" : "mb-1"}`}>
-        <div className="flex items-center gap-1.5">
-          <span className={`inline-block w-2 h-2 rounded-full ${cfg.dotColor}`} aria-hidden="true" />
-          <span className={`font-mono text-cyan-400 text-xs`}>
-            {session.session_id}
+      {/* 第 1 行：状态点 + 会话 ID + 徽章 + 时间 */}
+      <div className="flex min-w-0 items-baseline gap-2">
+        <span className={`h-1.5 w-1.5 shrink-0 self-center rounded-full ${cfg.dotColor}`} aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-foreground">
+          {session.session_id}
+        </span>
+        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/60">
+          {formatRelativeTime(session.updated_at)}
+        </span>
+      </div>
+
+      {/* 第 2 行：描述 + 消息数 + 悬停操作 */}
+      <div className="mt-0.5 flex min-w-0 items-center gap-2 pl-[14px]">
+        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+          {session.task || (session.type === "main" ? "主会话" : "")}
+          <span className="text-muted-foreground/50"> · {session.message_count} 条</span>
+          {session.agent_type && session.agent_type !== "main" && (
+            <span className="text-muted-foreground/50"> · {session.agent_type}</span>
+          )}
+        </span>
+        <span className={`shrink-0 text-[10px] uppercase tracking-wide ${wfMain ? "text-muted-foreground/60" : cfg.color}`}>
+          {label}
+        </span>
+        {(canKill || canDelete) && (
+          <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            {canKill && (
+              <button
+                type="button"
+                onClick={(e) => onKillSession(session.session_id, e)}
+                aria-label={`终止会话 ${session.session_id}`}
+                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-amber-400 cursor-pointer"
+              >
+                <X size={11} />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={(e) => onDeleteSession(session.session_id, e)}
+                aria-label={`删除会话 ${session.session_id}`}
+                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-red-400 cursor-pointer"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
           </span>
-        </div>
-        <div className="flex items-center gap-1">
-          {isViewing && (
-            <Badge variant="outline" className="text-xs text-indigo-400 border-indigo-500/30">查看中</Badge>
-          )}
-          <Badge
-            variant="outline"
-            className={`text-xs ${wfMain ? "text-purple-400 border-purple-500/30" : cfg.color} border-current/30`}
-          >
-            {label}
-          </Badge>
-        </div>
-      </div>
-
-      <div className={`flex items-center gap-1.5 text-muted-foreground text-xs ${isSub ? "mb-0" : "mb-1"}`}>
-        {session.agent_type && session.agent_type !== "main" && (
-          <Badge variant="outline" className="text-xs text-cyan-400 border-cyan-500/30">
-            {session.agent_type}
-          </Badge>
         )}
-      </div>
-
-      <p className={`text-muted-foreground text-xs`}>
-        {truncate(session.task || (session.type === "main" ? "主会话" : ""), isSub ? 30 : 60)}
-      </p>
-
-      <div className={`flex items-center justify-between text-muted-foreground text-xs ${isSub ? "mt-0.5" : "mt-1.5"}`}>
-        <span>{session.message_count} 条消息</span>
-        <div className="flex items-center gap-1">
-          <span>{formatRelativeTime(session.updated_at)}</span>
-          {canKill && (
-            <button
-              type="button"
-              onClick={(e) => onKillSession(session.session_id, e)}
-              aria-label={`终止会话 ${session.session_id}`}
-              className="ml-1 p-0.5 rounded text-amber-400 hover:bg-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
-            >
-              <X size={12} />
-            </button>
-          )}
-          {canDelete && (
-            <button
-              type="button"
-              onClick={(e) => onDeleteSession(session.session_id, e)}
-              aria-label={`删除会话 ${session.session_id}`}
-              className="p-0.5 rounded text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
-            >
-              <Trash2 size={12} />
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -201,12 +185,12 @@ export default function SessionsPanel({
       <div className="px-3 py-2 space-y-2">
         {/* Split Button */}
         <div className="relative" ref={dropdownRef}>
-          <div className="flex rounded-lg overflow-hidden">
+          <div className="flex rounded-md overflow-hidden">
             {/* 左侧主按钮 */}
             <button
               type="button"
               onClick={() => { onCreateSession("main"); setDropdownOpen(false); }}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 transition-colors text-xs font-medium cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-accent text-foreground/80 hover:bg-accent/70 hover:text-foreground transition-colors text-xs font-medium cursor-pointer"
             >
               <Plus size={14} />
               新建会话
@@ -218,7 +202,7 @@ export default function SessionsPanel({
               aria-haspopup="menu"
               aria-expanded={dropdownOpen}
               aria-label="选择会话类型"
-              className="px-2 py-2 bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 transition-colors border-l border-indigo-500/30 cursor-pointer"
+              className="px-2 py-1.5 bg-accent text-foreground/80 hover:bg-accent/70 hover:text-foreground transition-colors border-l border-border cursor-pointer"
             >
               <ChevronDown size={14} className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
             </button>
@@ -226,13 +210,13 @@ export default function SessionsPanel({
 
           {/* 下拉菜单 */}
           {dropdownOpen && (
-            <div className="absolute left-0 right-0 mt-1 z-50 max-h-64 overflow-y-auto rounded-lg bg-slate-800 border border-border/60 shadow-xl py-1" role="menu" aria-label="选择会话类型">
+            <div className="absolute left-0 right-0 mt-1 z-50 max-h-64 overflow-y-auto rounded-md bg-popover border border-border shadow-lg py-1" role="menu" aria-label="选择会话类型">
               {agentTypes.map((t) => (
                 <button
                   key={t.agent_type}
                   onClick={() => handleCreateWithType(t.agent_type)}
                   role="menuitem"
-                  className="w-full flex items-start gap-3 px-3 py-2 text-left hover:bg-indigo-500/10 transition-colors cursor-pointer"
+                  className="w-full flex items-start gap-3 px-3 py-2 text-left hover:bg-accent transition-colors cursor-pointer"
                 >
                   <Zap size={14} className="mt-0.5 text-indigo-400 flex-shrink-0" />
                   <div className="min-w-0">
@@ -263,20 +247,8 @@ export default function SessionsPanel({
           return (
             <div key={main.session_id} className="space-y-1">
               {/* Main card with collapse toggle */}
-              <div className="flex items-start gap-1">
-                <button
-                  type="button"
-                  onClick={(e) => toggleCollapse(main.session_id, e)}
-                  aria-expanded={!isCollapsed}
-                  aria-label={isCollapsed ? `展开 ${subs.length} 个子会话` : "折叠子会话"}
-                  className="mt-2 p-0.5 rounded hover:bg-slate-800 transition-colors cursor-pointer flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                >
-                  {subs.length > 0 && (
-                    isCollapsed ? <ChevronRight size={12} className="text-muted-foreground" />
-                              : <ChevronDown size={12} className="text-muted-foreground" />
-                  )}
-                </button>
-                <div className="flex-1">
+              <div className="flex items-start">
+                <div className="min-w-0 flex-1">
                   <SessionCard
                     session={main}
                     isViewing={isViewing}
@@ -290,27 +262,25 @@ export default function SessionsPanel({
                 </div>
               </div>
 
-              {/* Collapsed subs: 堆叠指示器 */}
-              {isCollapsed && subs.length > 0 && (
-                <div
-                  className="relative ml-4 cursor-pointer group"
-                  role="button"
-                  tabIndex={0}
+              {/* 子会话展开/收起切换（两种状态都渲染，展开后才能收得回去） */}
+              {subs.length > 0 && (
+                <button
+                  type="button"
                   onClick={(e) => toggleCollapse(main.session_id, e)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCollapse(main.session_id, e); } }}
-                  aria-label={`展开 ${subs.length} 个子会话`}
+                  className="flex min-h-6 w-full items-center gap-1 rounded-md px-2
+                    text-left text-[11px] text-muted-foreground/70 transition-colors
+                    hover:bg-accent/50 hover:text-foreground
+                    focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  aria-expanded={!isCollapsed}
+                  aria-label={isCollapsed ? `展开 ${subs.length} 个子会话` : `收起 ${subs.length} 个子会话`}
                 >
-                  {/* 3 层堆叠卡片 */}
-                  <div className="relative h-6">
-                    <div className="absolute inset-x-0 top-0 z-30 h-[20px] rounded-lg border border-indigo-500/15 bg-slate-800/60" />
-                    <div className="absolute left-[3px] right-[3px] top-[2px] z-20 h-[18px] rounded-lg border border-indigo-500/10 bg-slate-800/40" />
-                    <div className="absolute left-[6px] right-[6px] top-[4px] z-10 h-[16px] rounded-lg border border-indigo-500/5 bg-slate-800/20" />
-                  </div>
-                  {/* +N 徽章 */}
-                  <Badge variant="outline" className="absolute -right-1 top-1/2 -translate-y-1/2 text-xs text-indigo-400 border-indigo-500/30 bg-slate-900/80">
-                    +{subs.length}
-                  </Badge>
-                </div>
+                  {isCollapsed ? (
+                    <ChevronRight size={11} className="shrink-0" aria-hidden="true" />
+                  ) : (
+                    <ChevronDown size={11} className="shrink-0" aria-hidden="true" />
+                  )}
+                  <span>{isCollapsed ? `${subs.length} 个子会话` : `收起 ${subs.length} 个子会话`}</span>
+                </button>
               )}
 
               {/* 展开的子会话 */}

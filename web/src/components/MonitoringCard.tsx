@@ -15,7 +15,7 @@ interface Props {
 function EmptyCollapsed({ onToggle }: { onToggle?: () => void }) {
   return (
     <div
-      className="h-full flex flex-col items-center gap-1 py-2 cursor-pointer hover:bg-white/[0.03] transition-colors select-none rounded-r-lg border border-white/[0.04] bg-slate-950/60"
+      className="h-full flex flex-col items-center gap-1 py-2 cursor-pointer hover:bg-accent transition-colors select-none rounded-r-md border border-border bg-card"
       onClick={onToggle}
       role="button"
       tabIndex={0}
@@ -24,17 +24,17 @@ function EmptyCollapsed({ onToggle }: { onToggle?: () => void }) {
     >
       <ChevronRight size={12} className="text-slate-600 shrink-0" aria-hidden="true" />
       <div className="flex-1 w-1.5 bg-white/[0.04] rounded-full min-h-[20px]" aria-hidden="true" />
-      <span className="text-xs text-slate-700 font-mono">-</span>
+      <span className="text-xs text-muted-foreground font-mono">-</span>
     </div>
   );
 }
 
 function EmptyExpanded({ onToggle }: { onToggle?: () => void }) {
   return (
-    <div className="h-full flex flex-col rounded-xl border border-white/[0.06] bg-slate-900 select-none">
-      <div className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 border-b border-white/[0.05]">
+    <div className="h-full flex flex-col rounded-md border border-border bg-card select-none">
+      <div className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 border-b border-border">
         <BarChart3 size={14} className="text-slate-600" aria-hidden="true" />
-        <span className="text-xs font-semibold text-slate-500 tracking-wide">Token 监控</span>
+        <span className="text-xs font-medium text-muted-foreground">Token 监控</span>
         <button
           onClick={onToggle}
           className="ml-auto p-0.5 rounded hover:bg-white/[0.06] transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -45,7 +45,7 @@ function EmptyExpanded({ onToggle }: { onToggle?: () => void }) {
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-4 text-center gap-2" role="status" aria-label="暂无 Token 监控数据">
         <BarChart3 size={24} className="text-slate-700" aria-hidden="true" />
-        <span className="text-xs text-slate-600 leading-relaxed">
+        <span className="text-xs text-muted-foreground leading-relaxed">
           暂无数据<br />发送消息后开始统计
         </span>
       </div>
@@ -95,7 +95,7 @@ function MonitoringCard({ tokenUsage, collapsed, onToggle }: Props) {
   if (collapsed) {
     return (
       <div
-        className="h-full flex flex-col items-center gap-1 py-2 cursor-pointer hover:bg-white/[0.03] transition-colors select-none rounded-r-lg border border-white/[0.04] bg-slate-950/60"
+        className="h-full flex flex-col items-center gap-1 py-2 cursor-pointer hover:bg-accent transition-colors select-none rounded-r-md border border-border bg-card"
         onClick={onToggle}
         role="button"
         tabIndex={0}
@@ -103,7 +103,7 @@ function MonitoringCard({ tokenUsage, collapsed, onToggle }: Props) {
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle?.(); } }}
       >
         <ChevronRight size={12} className="text-slate-500 shrink-0" aria-hidden="true" />
-        <span className="text-xs text-slate-600 font-mono tabular-nums">
+        <span className="text-xs text-muted-foreground font-mono tabular-nums">
           {llm_call_count}
         </span>
         {/* 竖向占比条 */}
@@ -113,7 +113,7 @@ function MonitoringCard({ tokenUsage, collapsed, onToggle }: Props) {
             style={{ height: `${ctxBarPct}%` }}
           />
         </div>
-        <span className="text-xs text-slate-600 font-mono tabular-nums">
+        <span className="text-xs text-muted-foreground font-mono tabular-nums">
           {ctxPct}
         </span>
       </div>
@@ -122,11 +122,11 @@ function MonitoringCard({ tokenUsage, collapsed, onToggle }: Props) {
 
   // ========== 展开态：完整竖向面板 ==========
   return (
-    <div className="h-full flex flex-col rounded-xl border border-white/[0.06] bg-slate-900 select-none" role="region" aria-label="Token 监控面板">
+    <div className="h-full flex flex-col rounded-md border border-border bg-card select-none" role="region" aria-label="Token 监控面板">
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 border-b border-white/[0.05]">
+      <div className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 border-b border-border">
         <BarChart3 size={14} className="text-indigo-500" aria-hidden="true" />
-        <span className="text-xs font-semibold text-slate-300 tracking-wide">
+        <span className="text-xs font-medium text-foreground/80">
           Token 监控
         </span>
         <button
@@ -139,7 +139,7 @@ function MonitoringCard({ tokenUsage, collapsed, onToggle }: Props) {
       </div>
 
       {/* Scrollable Body */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 text-xs">
+      <div className="flex-1 overflow-y-auto px-3 py-2.5 space-y-3 text-xs">
 
         {/* --- 上下文概览 --- */}
         <div className="space-y-1.5">
@@ -169,17 +169,17 @@ function MonitoringCard({ tokenUsage, collapsed, onToggle }: Props) {
           </div>
           <div className="space-y-1" role="list" aria-label="API Token 统计">
             <StatRow icon={Layers} label="Prompt" value={formatTokens(api.prompt_tokens)} colorClass="text-indigo-500" />
-            <StatRow icon={Eye} label="Completion" value={formatTokens(api.completion_tokens)} colorClass="text-purple-500" />
-            <StatRow icon={Cpu} label="Total" value={formatTokens(api.total_tokens)} colorClass="text-cyan-500" />
+            <StatRow icon={Eye} label="Completion" value={formatTokens(api.completion_tokens)} colorClass="text-foreground/75" />
+            <StatRow icon={Cpu} label="Total" value={formatTokens(api.total_tokens)} colorClass="text-foreground/75" />
             <StatRow icon={Database} label="Cached" value={formatTokens(api.cached_tokens)} colorClass="text-green-500" />
-            <StatRow icon={Brain} label="Reasoning" value={formatTokens(api.reasoning_tokens)} colorClass="text-amber-500" />
+            <StatRow icon={Brain} label="Reasoning" value={formatTokens(api.reasoning_tokens)} colorClass="text-foreground/75" />
           </div>
         </div>
 
         {/* --- 估算 Token 占比 --- */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
-            <Database size={14} className="text-purple-500/70" aria-hidden="true" />
+            <Database size={14} className="text-muted-foreground" aria-hidden="true" />
             估算占比
           </div>
           <EstimateRow
@@ -208,10 +208,10 @@ function MonitoringCard({ tokenUsage, collapsed, onToggle }: Props) {
         {/* --- 命中率 --- */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
-            <Code2 size={14} className="text-emerald-400/70" aria-hidden="true" />
+            <Code2 size={14} className="text-muted-foreground" aria-hidden="true" />
             缓存命中率
           </div>
-          <div className="text-center text-lg font-mono font-bold text-emerald-400" role="status" aria-label={`缓存命中率 ${cacheHitRate}`}>
+          <div className="text-center text-lg font-mono font-semibold text-foreground" role="status" aria-label={`缓存命中率 ${cacheHitRate}`}>
             {cacheHitRate}
           </div>
         </div>

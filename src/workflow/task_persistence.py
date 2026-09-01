@@ -56,7 +56,8 @@ def write_task_state_file(task_file: Path, task_data: dict) -> None:
     )
     try:
         temporary.write_text(
-            json.dumps(task_data, ensure_ascii=False, indent=2),
+            # 不缩进：indent 会禁用 C 编码器，422KB task 实测 4.4ms -> 1.5ms
+            json.dumps(task_data, ensure_ascii=False),
             encoding="utf-8",
         )
         _replace_with_retry(temporary, task_file)

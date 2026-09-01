@@ -51,6 +51,30 @@ function uniqueId(desiredId: string, usedIds: Map<string, number>): string {
   return occurrence === 1 ? desiredId : `${desiredId}__${occurrence}`;
 }
 
+// 指纹按消息对象引用缓存：reducer 增量追加时旧消息引用不变，
+// 避免每轮 chain_end 对全历史做深度序列化+哈希（数 MB 主线程工作）。
+const fingerprintCache = new WeakMap<Message, string>();
+
+function fingerprintFor(message: Message, type: string): string {
+  const cached = fingerprintCache.get(message);
+  if (cached !== undefined) return cached;
+  const fingerprintSource = {
+    ...message,
+    id: undefined,
+    type,
+    tool_calls: cloneToolCalls(message.tool_calls)?.map((toolCall) => ({
+      ...toolCall,
+      function: {
+        name: toolCall.function.name,
+        arguments: toolCall.function.arguments,
+      },
+    })),
+  };
+  const fingerprint = JSON.stringify(stableValue(fingerprintSource));
+  fingerprintCache.set(message, fingerprint);
+  return fingerprint;
+}
+
 /**
  * Produces immutable, render-ready messages.
  *
@@ -84,24 +108,16 @@ export function normalizeMessages(messages: readonly Message[]): NormalizedMessa
         function: { ...toolCall.function, result },
       };
     });
-    const fingerprintSource = {
-      ...message,
-      id: undefined,
-      type,
-      tool_calls: cloneToolCalls(message.tool_calls)?.map((toolCall) => ({
-        ...toolCall,
-        function: {
-          name: toolCall.function.name,
-          arguments: toolCall.function.arguments,
-        },
-      })),
-    };
-    const fingerprint = JSON.stringify(stableValue(fingerprintSource));
-    const fingerprintOccurrence =
-      (fingerprintOccurrences.get(fingerprint) || 0) + 1;
-    fingerprintOccurrences.set(fingerprint, fingerprintOccurrence);
-    const generatedId = `msg_auto_${hashString(fingerprint)}_${fingerprintOccurrence}`;
-    const id = uniqueId(message.id?.trim() || generatedId, usedIds);
+    let desiredId = message.id?.trim() || "";
+    if (!desiredId) {
+      // 只有缺 id 的消息才需要内容指纹（带 id 的直接用自己的 id）
+      const fingerprint = fingerprintFor(message, type);
+      const fingerprintOccurrence =
+        (fingerprintOccurrences.get(fingerprint) || 0) + 1;
+      fingerprintOccurrences.set(fingerprint, fingerprintOccurrence);
+      desiredId = `msg_auto_${hashString(fingerprint)}_${fingerprintOccurrence}`;
+    }
+    const id = uniqueId(desiredId, usedIds);
 
     return {
       ...message,

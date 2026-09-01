@@ -10,6 +10,7 @@ import { useSettings } from "../hooks/useSettings";
 import { ConfigItemMeta } from "../types";
 import ModelProviderCard, { type ModelProvider, type ProviderSchema } from "../components/ModelProviderCard";
 import AddModelProviderDialog from "../components/AddModelProviderDialog";
+import BulkModelSwitcher from "../components/BulkModelSwitcher";
 import {
   addModelProvider,
   deleteModelProvider,
@@ -521,6 +522,9 @@ export default function SettingsPage() {
             </div>
           )}
         </section>
+
+        {/* 统一模型切换：一键把全部 Agent（含插件 Agent）切到同一个模型 */}
+        <BulkModelSwitcher providers={providers} />
 
         {/* 其他配置分组卡片 */}
         {CONFIG_GROUPS.filter((group) => group.key !== "system").map((group) => {

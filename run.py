@@ -2,12 +2,23 @@
 
 Production uses the Gunicorn command declared by the Docker image.
 """
+import faulthandler
 import os
 import sys
 from pathlib import Path
 
 # 将项目根目录加入 sys.path
 sys.path.insert(0, str(Path(__file__).parent))
+
+# 段错误诊断：进程被 SIGSEGV 杀死时，Python 层没有任何 traceback，
+# 事件日志只会记录 "unknown 模块"。启用后崩溃瞬间的调用栈会写入
+# logs/faulthandler.log，可定位是哪个 C 扩展触发的。
+# 只注册一次：faulthandler.enable() 后一次调用会覆盖前一次，而后台
+# 运行时 stderr 通常被丢弃，因此固定写文件。
+_fault_log = Path(__file__).parent / "logs" / "faulthandler.log"
+_fault_log.parent.mkdir(parents=True, exist_ok=True)
+_fault_fp = open(_fault_log, "a", buffering=1, encoding="utf-8", errors="replace")
+faulthandler.enable(file=_fault_fp, all_threads=True)
 
 npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
 
@@ -77,12 +88,25 @@ if __name__ == "__main__":
     limit_concurrency = int(os.getenv("UVICORN_LIMIT_CONCURRENCY", "200"))
     backlog = int(os.getenv("UVICORN_BACKLOG", "2048"))
 
-    uvicorn.run(
-        "src.web_server:app",
-        host=host,
-        port=port,
-        reload=False,
-        log_level="info",
-        limit_concurrency=limit_concurrency,
-        backlog=backlog,
+    # openai/pydantic 在解析大响应时会做深层递归的 schema 重建
+    # （construct_type → model_rebuild → _generate_schema），默认 ~1MB
+    # 线程栈会被打爆，进程直接以访问违例死亡且无任何 Python 层报错
+    # （faulthandler.log 2026-08-29 00:22 捕获）。放到 64MB 栈的线程里跑。
+    import threading
+
+    threading.stack_size(64 * 1024 * 1024)
+    server_thread = threading.Thread(
+        target=uvicorn.run,
+        args=("src.web_server:app",),
+        kwargs=dict(
+            host=host,
+            port=port,
+            reload=False,
+            log_level="info",
+            limit_concurrency=limit_concurrency,
+            backlog=backlog,
+        ),
+        name="uvicorn-main",
     )
+    server_thread.start()
+    server_thread.join()

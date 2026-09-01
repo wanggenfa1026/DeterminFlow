@@ -35,7 +35,21 @@ export function useSessions() {
     if (event.type === "status_update") {
       const statusData = event.data as StatusUpdateData & { sessions?: Session[] };
       if (Array.isArray(statusData.sessions)) {
-        setSessions(statusData.sessions);
+        const next = statusData.sessions;
+        // 后端每 2 秒无条件推全量快照且引用永远是新的：
+        // 内容没变时保留旧引用，避免整棵消费树（含时间线）无谓重渲。
+        setSessions((prev) => {
+          if (prev.length === next.length && prev.every((a, i) => {
+            const b = next[i];
+            return a.session_id === b.session_id
+              && a.status === b.status
+              && a.updated_at === b.updated_at
+              && a.message_count === b.message_count;
+          })) {
+            return prev;
+          }
+          return next;
+        });
       }
       setActiveSubCount(statusData.active_sub_count);
       setMainSessionId(statusData.main_session_id);

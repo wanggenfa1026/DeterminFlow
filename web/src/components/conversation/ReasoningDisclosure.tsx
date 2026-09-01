@@ -1,5 +1,5 @@
-import { useId, useState } from "react";
-import { Brain, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { memo, useId, useState } from "react";
+import { ChevronDown, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import CopyButton from "./CopyButton";
 import MarkdownContent from "./MarkdownContent";
 
@@ -10,7 +10,7 @@ export interface ReasoningDisclosureProps {
   className?: string;
 }
 
-export default function ReasoningDisclosure({
+function ReasoningDisclosure({
   content,
   streaming = false,
   defaultExpanded = false,
@@ -23,30 +23,41 @@ export default function ReasoningDisclosure({
   if (!content && !streaming) return null;
 
   return (
-    <section className={`rounded-lg border border-purple-500/15 bg-purple-500/5 ${className}`} aria-label={label}>
-      <div className="flex min-h-10 items-center gap-1 px-2">
+    <section className={`group/reason ${className}`} aria-label={label}>
+      <div className="flex h-7 items-center gap-1 px-1">
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
           aria-expanded={expanded}
           aria-controls={contentId}
-          className="inline-flex min-h-9 flex-1 items-center gap-2 rounded text-left text-xs text-purple-300 transition-colors hover:text-purple-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+          className="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-left text-[12px] text-muted-foreground/70 transition-colors hover:bg-muted/40 hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
         >
           {streaming ? (
-            <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            <Loader2 size={12} className="shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           ) : (
-            <Brain size={14} aria-hidden="true" />
+            <Sparkles size={12} className="shrink-0 opacity-60" aria-hidden="true" />
           )}
           <span>{label}</span>
-          {expanded ? <ChevronDown size={13} className="ml-auto" aria-hidden="true" /> : <ChevronRight size={13} className="ml-auto" aria-hidden="true" />}
+          <span className="text-muted-foreground/50" aria-hidden="true">
+            {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          </span>
         </button>
-        {content && <CopyButton value={content} label="思考过程" />}
+        {content && (
+          <span className="opacity-0 transition-opacity group-hover/reason:opacity-100">
+            <CopyButton value={content} label="思考过程" />
+          </span>
+        )}
       </div>
       {expanded && content && (
-        <div id={contentId} className="border-t border-purple-500/10 px-3 py-2 text-sm text-slate-400">
-          <MarkdownContent content={content} className="text-sm" />
+        <div
+          id={contentId}
+          className="ml-[9px] mt-0.5 border-l-2 border-border/50 py-0.5 pl-3 opacity-75"
+        >
+          <MarkdownContent content={content} className="text-[12.5px] leading-6" />
         </div>
       )}
     </section>
   );
 }
+
+export default memo(ReasoningDisclosure);
