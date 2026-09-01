@@ -740,7 +740,18 @@ def create_app(extension_manager: ExtensionManager | None = None) -> FastAPI:
 
     web_dist = BASE_DIR / "web" / "dist"
     if web_dist.exists():
-        application.mount("/", StaticFiles(directory=str(web_dist), html=True), name="static")
+        class NoCacheHtmlStaticFiles(StaticFiles):
+            """HTML 入口禁用缓存：资产文件名带内容哈希可长缓存，但 index.html
+            本身若被浏览器缓存，发新版后用户会继续加载旧资产清单，必须强刷才能更新。"""
+
+            def file_response(self, *args, **kwargs):
+                response = super().file_response(*args, **kwargs)
+                media_type = getattr(response, "media_type", "") or ""
+                if "text/html" in media_type:
+                    response.headers["Cache-Control"] = "no-cache"
+                return response
+
+        application.mount("/", NoCacheHtmlStaticFiles(directory=str(web_dist), html=True), name="static")
     return application
 
 

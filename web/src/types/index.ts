@@ -835,11 +835,11 @@ export interface NodeTypeOption {
  * coder=green-500, reviewer=blue-500, researcher=amber-500, reader=violet-500, default=indigo-500
  */
 export const AGENT_TYPE_COLORS: Record<string, string> = {
-  coder: "#22C55E",
-  reviewer: "#3B82F6",
-  researcher: "#F59E0B",
-  reader: "#8B5CF6",
-  default: "#6366F1",
+  coder: "#42804f",
+  reviewer: "#3d7ad2",
+  researcher: "#c9882f",
+  reader: "#7a6bc9",
+  default: "#3d7ad2",
 };
 
 /**
@@ -847,10 +847,10 @@ export const AGENT_TYPE_COLORS: Record<string, string> = {
  * agent=indigo-500, approval=amber-500, script=cyan-500
  */
 export const NODE_TYPE_COLORS: Record<string, string> = {
-  agent: "#6366F1",
-  approval: "#F59E0B",
-  script: "#06B6D4",
-  subprocess: "#10B981",
+  agent: "#3d7ad2",
+  approval: "#c9882f",
+  script: "#3f8f91",
+  subprocess: "#42804f",
 };
 
 /**
@@ -858,10 +858,10 @@ export const NODE_TYPE_COLORS: Record<string, string> = {
  * pending=slate-400, running=blue-500, completed=green-500, failed=red-500
  */
 export const NODE_STATUS_COLORS: Record<string, string> = {
-  pending: "#94A3B8",
-  running: "#3B82F6",
-  completed: "#22C55E",
-  failed: "#EF4444",
+  pending: "#8a8a91",
+  running: "#3d7ad2",
+  completed: "#42804f",
+  failed: "#c94f43",
 };
 
 // ============================================================

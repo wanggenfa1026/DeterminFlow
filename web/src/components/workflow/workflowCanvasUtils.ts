@@ -252,15 +252,15 @@ export function buildWorkflowGraph(
     animated: running,
     style: {
       stroke: edge.condition
-        ? (edge.condition.is_default ? "#64748B" : "#3B82F6")
-        : "#6366F1",
+        ? (edge.condition.is_default ? "#6b6b72" : "#3d7ad2")
+        : "#525258",
       strokeWidth: 2,
     },
     markerEnd: {
       type: MarkerType.ArrowClosed,
       color: edge.condition
-        ? (edge.condition.is_default ? "#64748B" : "#3B82F6")
-        : "#6366F1",
+        ? (edge.condition.is_default ? "#6b6b72" : "#3d7ad2")
+        : "#525258",
     },
     label: edge.condition && !edge.condition.is_default
       ? edge.condition.label || edge.condition.expression
@@ -269,7 +269,7 @@ export function buildWorkflowGraph(
         : undefined,
     labelStyle: {
       fontSize: 12,
-      fill: edge.condition?.is_default ? "#64748B" : "#3B82F6",
+      fill: edge.condition?.is_default ? "#6b6b72" : "#3d7ad2",
     },
     deletable: !isReadOnly,
     data: { condition: edge.condition || null },

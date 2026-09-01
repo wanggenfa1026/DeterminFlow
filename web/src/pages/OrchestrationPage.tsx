@@ -16,6 +16,56 @@ const SUB_TABS: { key: OrchestrationSubTab; label: string; icon: typeof FileText
   { key: "user-injection", label: "用户消息注入", icon: User },
 ];
 
+/** 模板按职能分组的关键词规则（按声明顺序优先匹配），未命中的归入「其他」 */
+const TEMPLATE_GROUP_RULES: { label: string; test: (name: string) => boolean }[] = [
+  { label: "核心", test: (n) => ["main", "subagent", "compressor"].includes(n) },
+  { label: "世界观", test: (n) => n.includes("worldbuilder") },
+  { label: "角色", test: (n) => n.includes("character") },
+  { label: "写手", test: (n) => /(^|-)(writer|storyboard-integrator)$/.test(n) || n.includes("-writer") },
+  { label: "规划与导演", test: (n) => /outlin|planner|director|settler|intent|trimmer/.test(n) },
+  { label: "润色与审校", test: (n) => /polish|critic|style-profiler/.test(n) },
+  { label: "后验", test: (n) => /observer|arbiter/.test(n) },
+];
+
+/** 计算被 ≥60% 模板共享的最长 token 前缀，用于显示时剥掉冗余前缀 */
+function commonTemplatePrefix(templates: string[]): string {
+  if (templates.length < 4) return "";
+  const tokenLists = templates.map((t) => t.split("-"));
+  let prefix = "";
+  for (let depth = 1; depth <= 4; depth++) {
+    const counts = new Map<string, number>();
+    for (const tokens of tokenLists) {
+      if (tokens.length > depth) {
+        const p = tokens.slice(0, depth).join("-");
+        counts.set(p, (counts.get(p) || 0) + 1);
+      }
+    }
+    const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (best && best[1] >= templates.length * 0.6) prefix = best[0];
+    else break;
+  }
+  return prefix;
+}
+
+function groupTemplates(templates: string[]) {
+  const prefix = commonTemplatePrefix(templates);
+  const groups = new Map<string, { full: string; short: string }[]>();
+  for (const full of templates) {
+    const short = prefix && full.startsWith(`${prefix}-`) ? full.slice(prefix.length + 1) : full;
+    const rule = TEMPLATE_GROUP_RULES.find((r) => r.test(full));
+    const label = rule ? rule.label : "其他";
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label)!.push({ full, short });
+  }
+  const order = [...TEMPLATE_GROUP_RULES.map((r) => r.label), "其他"];
+  return order
+    .filter((label) => groups.has(label))
+    .map((label) => ({
+      label,
+      items: groups.get(label)!.sort((a, b) => a.short.localeCompare(b.short)),
+    }));
+}
+
 export default function OrchestrationPage() {
   const {
     availableTemplates,
@@ -184,23 +234,33 @@ export default function OrchestrationPage() {
           <div className="p-4">
             {activeTab === "prompts" && (
               <div className="space-y-3">
-                <div className="flex gap-1 rounded-lg bg-slate-800/50 p-1 border border-border/40 w-fit flex-wrap">
-                  {availableTemplates.map((tmpl) => (
-                    <button
-                      key={tmpl}
-                      type="button"
-                      onClick={() => setPromptTarget(tmpl)}
-                      onContextMenu={(e) => handleTemplateContextMenu(e, tmpl)}
-                      aria-label={`选择模板 ${tmpl}`}
-                      aria-pressed={promptTarget === tmpl}
-                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:outline-none ${
-                        promptTarget === tmpl
-                          ? "bg-indigo-500/20 text-indigo-500"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {tmpl}
-                    </button>
+                <div className="space-y-2 rounded-lg bg-slate-800/50 p-2.5 border border-border/40">
+                  {groupTemplates(availableTemplates).map(({ label, items }) => (
+                    <div key={label} className="flex items-baseline gap-2">
+                      <span className="w-20 shrink-0 text-right text-[11px] text-muted-foreground/70 select-none">
+                        {label}
+                      </span>
+                      <div className="flex flex-wrap gap-1 min-w-0">
+                        {items.map(({ full, short }) => (
+                          <button
+                            key={full}
+                            type="button"
+                            onClick={() => setPromptTarget(full)}
+                            onContextMenu={(e) => handleTemplateContextMenu(e, full)}
+                            aria-label={`选择模板 ${full}`}
+                            aria-pressed={promptTarget === full}
+                            title={full}
+                            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:outline-none ${
+                              promptTarget === full
+                                ? "bg-indigo-500/20 text-indigo-500"
+                                : "text-muted-foreground hover:text-foreground hover:bg-slate-700/40"
+                            }`}
+                          >
+                            {short}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 {/* Template Variables Editor */}

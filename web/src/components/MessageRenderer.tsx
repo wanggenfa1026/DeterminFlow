@@ -53,7 +53,7 @@ function parseUserContent(content: string): { userContent: string; hasInjection:
 function UserMessageContent({ message, content }: { message: Message; content: string }) {
   const parts = splitUserMessageAttachments(content, message.attachments);
   return (
-    <p className="text-sm whitespace-pre-wrap">
+    <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
       {parts.map((part, index) => part.type === "text" ? (
         <span key={`text-${index}`}>{part.value}</span>
       ) : (

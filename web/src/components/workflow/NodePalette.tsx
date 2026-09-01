@@ -80,7 +80,7 @@ export default function NodePalette() {
       <div className="flex-1 overflow-y-auto p-3 space-y-2" role="list" aria-label="节点类型列表">
         {nodeTypes.map((nt) => {
           const color =
-            NODE_TYPE_COLORS[nt.node_type] || "#6366F1"; // indigo-500 fallback
+            NODE_TYPE_COLORS[nt.node_type] || "#525258"; // indigo-500 fallback
           const iconNode = ICON_MAP[nt.icon] || <HelpCircle size={14} />;
 
           return (

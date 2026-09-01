@@ -276,8 +276,8 @@ function WorkflowCanvasInner({ workflowId, taskId, readOnly, selectionMode, disa
           {
             ...connection,
             id: generateEdgeId(sourceId, targetId),
-            style: { stroke: "#6366F1", strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: "#6366F1" },
+            style: { stroke: "#525258", strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: "#525258" },
             deletable: !isReadOnly,
           },
           eds
@@ -756,8 +756,8 @@ function WorkflowCanvasInner({ workflowId, taskId, readOnly, selectionMode, disa
           snapGrid={SNAP_GRID}
           className="bg-slate-950"
           defaultEdgeOptions={{
-            style: { stroke: "#6366F1", strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: "#6366F1" },
+            style: { stroke: "#525258", strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: "#525258" },
           }}
           aria-label="工作流画布"
           nodesDraggable={!isReadOnly}
@@ -771,31 +771,31 @@ function WorkflowCanvasInner({ workflowId, taskId, readOnly, selectionMode, disa
             variant={BackgroundVariant.Dots}
             gap={16}
             size={1}
-            color="#334155"
+            color="#26262a"
           />
           {!isReadOnly && (
             <Controls className="!bg-slate-900 !border-slate-800 !fill-slate-400" />
           )}
           <MiniMap
-            nodeStrokeColor="#6366F1"
+            nodeStrokeColor="#525258"
             nodeColor={(n) => {
-              if (n.id === START_NODE_ID) return "#22C55E";
-              if (n.id === END_NODE_ID) return "#EF4444";
+              if (n.id === START_NODE_ID) return "#42804f";
+              if (n.id === END_NODE_ID) return "#c94f43";
               const agentColor = (n.data as Record<string, string>)?.agent_type;
               const nodeStatus = (n.data as Record<string, string>)?.status;
-              if (nodeStatus === "running") return "#3B82F6";
-              if (nodeStatus === "retry_waiting") return "#F59E0B";
-              if (nodeStatus === "completed") return "#22C55E";
-              if (nodeStatus === "failed") return "#EF4444";
+              if (nodeStatus === "running") return "#3d7ad2";
+              if (nodeStatus === "retry_waiting") return "#c9882f";
+              if (nodeStatus === "completed") return "#42804f";
+              if (nodeStatus === "failed") return "#c94f43";
               return agentColor === "coder"
-                ? "#22C55E"
+                ? "#42804f"
                 : agentColor === "reviewer"
-                ? "#3B82F6"
+                ? "#3d7ad2"
                 : agentColor === "researcher"
-                ? "#F59E0B"
+                ? "#c9882f"
                 : agentColor === "reader"
-                ? "#8B5CF6"
-                : "#6366F1";
+                ? "#7a6bc9"
+                : "#525258";
             }}
             maskColor="rgba(15, 23, 42, 0.7)"
             className="!bg-slate-900/80 !border !border-indigo-500/10"
@@ -906,22 +906,22 @@ function WorkflowCanvasInner({ workflowId, taskId, readOnly, selectionMode, disa
                     ...e,
                     label: undefined,
                     labelStyle: undefined,
-                    style: { stroke: "#6366F1", strokeWidth: 2 },
-                    markerEnd: { type: MarkerType.ArrowClosed, color: "#6366F1" },
+                    style: { stroke: "#525258", strokeWidth: 2 },
+                    markerEnd: { type: MarkerType.ArrowClosed, color: "#525258" },
                     data: { ...e.data, condition: null },
                   };
                 }
                 return {
                   ...e,
                   label: condition.is_default ? "默认" : (condition.label || condition.expression),
-                  labelStyle: { fontSize: 12, fill: condition.is_default ? "#64748B" : "#3B82F6" },
+                  labelStyle: { fontSize: 12, fill: condition.is_default ? "#6b6b72" : "#3d7ad2" },
                   style: {
-                    stroke: condition.is_default ? "#64748B" : "#3B82F6",
+                    stroke: condition.is_default ? "#6b6b72" : "#3d7ad2",
                     strokeWidth: 2,
                   },
                   markerEnd: {
                     type: MarkerType.ArrowClosed,
-                    color: condition.is_default ? "#64748B" : "#3B82F6",
+                    color: condition.is_default ? "#6b6b72" : "#3d7ad2",
                   },
                   data: { ...e.data, condition },
                 };

@@ -39,12 +39,12 @@ interface SubprocessPopupProps {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#475569",
-  running: "#3B82F6",
+  running: "#3d7ad2",
   retry_waiting: "#F59E0B",
   completed: "#22C55E",
   failed: "#EF4444",
   waiting_approval: "#F59E0B",
-  skipped: "#64748B",
+  skipped: "#6b6b72",
 };
 
 export default function SubprocessPopup({
@@ -214,7 +214,7 @@ export default function SubprocessPopup({
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
             <defs>
               <marker id="sp-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <path d="M0,0 L8,3 L0,6 Z" fill="#6366F1" />
+                <path d="M0,0 L8,3 L0,6 Z" fill="#525258" />
               </marker>
             </defs>
             {edges.map((e) => {
@@ -229,7 +229,7 @@ export default function SubprocessPopup({
                 <line
                   key={e.id}
                   x1={sx} y1={sy} x2={tx} y2={ty}
-                  stroke={e.condition?.is_default ? "#64748B" : "#6366F1"}
+                  stroke={e.condition?.is_default ? "#6b6b72" : "#525258"}
                   strokeWidth={1.5}
                   strokeDasharray={e.condition?.is_default ? "6,3" : "none"}
                   markerEnd="url(#sp-arrow)"
@@ -248,7 +248,7 @@ export default function SubprocessPopup({
               const status = state?.status || "pending";
               const nt = n.node_type || "agent";
               const color =
-                NODE_TYPE_COLORS[nt] || AGENT_TYPE_COLORS[n.agent_type] || "#6366F1";
+                NODE_TYPE_COLORS[nt] || AGENT_TYPE_COLORS[n.agent_type] || "#525258";
               const statusColor = STATUS_COLORS[status] || STATUS_COLORS.pending;
               const isRunning = status === "running";
               const hasClick = onChildNodeClick && state?.session_id;

@@ -30,10 +30,10 @@ export function EndNode() {
 }
 
 const GATEWAY_COLORS: Record<string, string> = {
-  parallel: "#8B5CF6",
-  converge: "#F59E0B",
-  condition: "#3B82F6",
-  loop: "#10B981",
+  parallel: "#7a6bc9",
+  converge: "#c9882f",
+  condition: "#3d7ad2",
+  loop: "#42804f",
 };
 
 const GATEWAY_LABELS: Record<string, string> = {

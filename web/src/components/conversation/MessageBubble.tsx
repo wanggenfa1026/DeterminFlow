@@ -53,7 +53,7 @@ function MessageBubble({
           {hasVisibleText(message.content) && (
             <MarkdownContent
               content={stripInvisible(message.content)}
-              className="px-1 text-sm leading-7 text-foreground/90"
+              className="px-1 text-[15px] leading-[1.9] text-foreground/90"
             />
           )}
         </div>

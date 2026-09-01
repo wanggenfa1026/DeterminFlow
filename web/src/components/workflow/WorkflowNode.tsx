@@ -48,7 +48,7 @@ export default function WorkflowNode({ id, data }: NodeProps) {
 
   // 颜色：优先 node_type 颜色，其次 agent_type 颜色
   const color =
-    NODE_TYPE_COLORS[nt] || AGENT_TYPE_COLORS[agent_type] || "#6366F1";
+    NODE_TYPE_COLORS[nt] || AGENT_TYPE_COLORS[agent_type] || "#525258";
   const isSkipped = legacySkipped || status === "skipped";
   const effectiveStatus = isSkipped ? "skipped" : status || "pending";
   const borderClass = STATUS_CLASSES[effectiveStatus] || STATUS_CLASSES.pending;

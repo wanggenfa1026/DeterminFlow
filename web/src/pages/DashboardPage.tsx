@@ -13,13 +13,13 @@ import { PromptHistoryEntry, Session } from "../types";
 
 /* Status color map (single source of truth) */
 const STATUS_STYLES: Record<string, { bg: string; label: string }> = {
-  running:   { bg: "#22C55E", label: "运行中" },
-  streaming: { bg: "#06B6D4", label: "流式传输" },
-  completed: { bg: "#3B82F6", label: "已完成" },
-  error:     { bg: "#EF4444", label: "错误"   },
-  idle:      { bg: "#94A3B8", label: "空闲"   },
+  running:   { bg: "#42804f", label: "运行中" },
+  streaming: { bg: "#3f8f91", label: "流式传输" },
+  completed: { bg: "#3d7ad2", label: "已完成" },
+  error:     { bg: "#c94f43", label: "错误"   },
+  idle:      { bg: "#8a8a91", label: "空闲"   },
 };
-const DEFAULT_STATUS = { bg: "#F59E0B", label: "未知" };
+const DEFAULT_STATUS = { bg: "#c9882f", label: "未知" };
 
 function getStatusStyle(status: string) {
   return STATUS_STYLES[status] ?? DEFAULT_STATUS;
