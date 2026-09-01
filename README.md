@@ -1,3 +1,14 @@
+> [!NOTE]
+> **本仓库是个人二次开发 Fork，不是官方版本。**
+> 原项目为 [alikon-art/DeterminFlow](https://github.com/alikon-art/DeterminFlow)，版权与设计归原作者所有，特此致谢。
+> 本 Fork 自 2026-09-01 起包含个人使用场景（AI 小说创作的本地部署）的定制修改：工作流引擎修复与加固、界面重设计、统一模型切换等，改动详见提交历史。
+> 这些修改**未经原作者审阅或背书**——使用本 Fork 遇到的任何问题请在本仓库反馈，**请勿**向原项目提 Issue，以免打扰原作者。
+> 遵循与上游一致的 [AGPL-3.0](LICENSE) 许可证。
+>
+> *This is a personal fork for secondary development. All credit for the original work goes to [alikon-art/DeterminFlow](https://github.com/alikon-art/DeterminFlow). Modified since 2026-09-01; changes are not reviewed or endorsed by the upstream author. Please do not report issues from this fork to the upstream project. Licensed under the same AGPL-3.0.*
+
+---
+
 <div align="center">
 
 <h1>
