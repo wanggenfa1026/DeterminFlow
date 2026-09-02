@@ -5,6 +5,8 @@ import {
   Moon, Plus, Sun, Trash2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useTheme } from "@/theme-context";
 import { useSettings } from "../hooks/useSettings";
 import { ConfigItemMeta } from "../types";
@@ -311,59 +313,36 @@ export default function SettingsPage() {
   }
 
   return (
-    <div role="main" aria-label="系统配置页面" className="h-[calc(100dvh-3.5rem)] overflow-y-auto">
+    <div role="main" aria-label="系统配置页面" className="h-[100dvh] overflow-y-auto">
       <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
         {/* 操作栏 */}
-        <nav aria-label="配置操作" className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Settings size={22} className="text-indigo-400" />
-            <div>
-              <h2 className="text-xl font-bold text-slate-100">系统配置</h2>
-              <p className="text-xs text-slate-500 mt-0.5">{meta.length} 个配置项</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {hasChanges && (
-              <button
-                type="button"
-                onClick={resetChanges}
-                aria-label="撤销所有修改"
-                className="px-4 py-2 text-sm rounded-lg border border-slate-600 text-slate-300
-                  hover:bg-slate-700 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
-              >
-                撤销修改
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={loadConfig}
-              aria-label="重新加载配置"
-              className="p-2 rounded-lg border border-slate-600 text-slate-400
-                hover:bg-slate-700 hover:text-slate-200 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
-              title="重新加载"
-            >
-              <RefreshCw size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => saveConfig(true)}
-              disabled={!hasChanges || saving}
-              aria-label={saving ? "保存中" : "保存配置"}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                hasChanges && !saving
-                  ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                  : "bg-slate-700 text-slate-500 cursor-not-allowed"
-              }`}
-            >
-              {saving ? (
-                <RefreshCw size={14} className="animate-spin motion-reduce:animate-none" />
-              ) : (
-                <Save size={14} />
+        <PageHeader
+          icon={Settings}
+          title="系统配置"
+          description={`${meta.length} 个配置项`}
+          className="mb-0"
+          actions={(
+            <>
+              {hasChanges && (
+                <Button type="button" variant="outline" onClick={resetChanges} aria-label="撤销所有修改">
+                  撤销修改
+                </Button>
               )}
-              {saving ? "保存中..." : "保存配置"}
-            </button>
-          </div>
-        </nav>
+              <Button type="button" variant="outline" size="icon" onClick={loadConfig} aria-label="重新加载配置" title="重新加载">
+                <RefreshCw aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                onClick={() => saveConfig(true)}
+                disabled={!hasChanges || saving}
+                aria-label={saving ? "保存中" : "保存配置"}
+              >
+                {saving ? <RefreshCw className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Save aria-hidden="true" />}
+                {saving ? "保存中..." : "保存配置"}
+              </Button>
+            </>
+          )}
+        />
 
         <section aria-labelledby="appearance-heading" className="overflow-hidden rounded-xl bg-slate-800/80 border border-slate-700/50">
           <div className="flex items-center gap-3 px-5 py-4">

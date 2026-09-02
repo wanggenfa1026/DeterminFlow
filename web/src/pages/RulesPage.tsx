@@ -3,7 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, RefreshCw, Eye, Edit2, Check, X, Layers, Trash2, Workflow, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { StatTile } from '@/components/layout/StatTile';
+import { AlertTriangle, BookOpen, RefreshCw, Eye, Edit2, Check, X, Layers, Trash2, Workflow, Loader2 } from 'lucide-react';
 import { RuleGroup } from '../types';
 import { fetchRuleGroups, createRuleGroup, updateRuleGroup, deleteRuleGroup, setRuleGroups } from '../lib/api';
 import { useToast } from '@/components/ui/use-toast';
@@ -295,12 +297,13 @@ export default function RulesPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Rules 管理</h1>
-          <p className="text-muted-foreground">管理必须遵守的规则</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        icon={BookOpen}
+        title="Rules"
+        description="管理必须遵守的规则"
+        className="mb-0"
+        actions={(
+          <>
           <Button variant="outline" onClick={openCreateGroup} aria-label="管理规则组" type="button" className="focus-visible:ring-2 focus-visible:ring-indigo-500/30">
             <Layers className="w-4 h-4 mr-2" />管理组
           </Button>
@@ -312,49 +315,16 @@ export default function RulesPage() {
             )}
             重新加载
           </Button>
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-blue-400">总计规则</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-300 tabular-nums">{stats.total}</div>
-            </CardContent>
-          </Card>
-          {stats.enabled !== undefined && (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-green-400">已启用</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-300 tabular-nums">{stats.enabled}</div>
-              </CardContent>
-            </Card>
-          )}
-          {stats.workflow_only !== undefined && (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-purple-400">工作流专属</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-300 tabular-nums">{stats.workflow_only}</div>
-              </CardContent>
-            </Card>
-          )}
-          {stats.groups !== undefined && (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-orange-400">规则组</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-300 tabular-nums">{stats.groups}</div>
-              </CardContent>
-            </Card>
-          )}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" role="region" aria-label="规则统计">
+          <StatTile label="总计规则" value={stats.total} />
+          {stats.enabled !== undefined && <StatTile label="已启用" value={stats.enabled} tone="positive" />}
+          {stats.workflow_only !== undefined && <StatTile label="工作流专属" value={stats.workflow_only} />}
+          {stats.groups !== undefined && <StatTile label="规则组" value={stats.groups} />}
         </div>
       )}
 

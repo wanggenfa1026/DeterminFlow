@@ -182,7 +182,7 @@ export default function OrchestrationPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100dvh-3.5rem)] flex items-center justify-center" role="status" aria-label="加载编排数据">
+      <div className="h-[100dvh] flex items-center justify-center" role="status" aria-label="加载编排数据">
         <div className="flex items-center gap-2 text-muted-foreground animate-pulse motion-reduce:animate-none">
           <RefreshCw size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
           <span className="sr-only">加载编排数据中...</span>
@@ -193,7 +193,7 @@ export default function OrchestrationPage() {
   }
 
   return (
-    <div ref={containerRef} className="h-[calc(100dvh-3.5rem)] flex" role="main" aria-label="Agent 编排配置">
+    <div ref={containerRef} className="h-[100dvh] flex" role="main" aria-label="Agent 编排配置">
       {/* Left: Editor Panel */}
       <div className="flex flex-col min-w-0 border-r border-border/30" style={{ width: `${leftRatio * 100}%` }}>
         {/* Sub Tabs */}

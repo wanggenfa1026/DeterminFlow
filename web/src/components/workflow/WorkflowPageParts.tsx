@@ -1,6 +1,8 @@
 import type { RefObject } from "react";
-import { List, Plus, Trash2, X } from "lucide-react";
+import { List, Plus, Trash2, Workflow, X } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/PageHeader";
 import type { WorkflowSummary } from "../../types";
 
 export type WorkflowPageTab = "templates" | "scripts" | "history";
@@ -91,15 +93,16 @@ export function WorkflowTemplatePanel({
             </button>
           </div>
         )}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-semibold text-slate-100">工作流模板</h2>
-            <p className="text-sm text-slate-400 mt-1">管理 Agent 手动编排工作流，编辑与运行分离</p>
-          </div>
-          <button type="button" onClick={onCreate} aria-label="新建工作流" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors cursor-pointer min-h-[44px]">
-            <Plus size={16} aria-hidden="true" />新建工作流
-          </button>
-        </div>
+        <PageHeader
+          icon={Workflow}
+          title="工作流模板"
+          description="管理 Agent 手动编排工作流，编辑与运行分离"
+          actions={(
+            <Button type="button" onClick={onCreate} aria-label="新建工作流">
+              <Plus aria-hidden="true" />新建工作流
+            </Button>
+          )}
+        />
 
         {loading ? (
           <div className="flex items-center justify-center py-20 gap-1.5" role="status" aria-label="正在加载工作流列表">

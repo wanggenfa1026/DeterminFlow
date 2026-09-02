@@ -1,6 +1,7 @@
 import { Layers, MessageSquare, Thermometer, Wifi, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { SystemStatus } from "../types";
+import { StatTile, type StatTone } from "./layout/StatTile";
 
 interface StatsCardsProps {
   status: SystemStatus;
@@ -12,7 +13,7 @@ interface StatCard {
   suffix?: string;
   icon: LucideIcon;
   /** 仅状态类数值需要着色，其余保持中性 */
-  valueClass?: string;
+  tone?: StatTone;
   pulse?: boolean;
 }
 
@@ -46,37 +47,24 @@ export default function StatsCards({ status }: StatsCardsProps) {
       value: status.mcp_connected ? "已连接" : "断开",
       suffix: status.mcp_connected ? `(${status.mcp_tools_count} 工具)` : "",
       icon: Wifi,
-      valueClass: status.mcp_connected ? "text-emerald-500" : "text-red-400",
+      // 未配置 MCP 是常态，用弱化色而非报警红
+      tone: status.mcp_connected ? "positive" : "muted",
     },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" role="region" aria-label="系统状态统计">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <div
-            key={card.label}
-            className="rounded-lg border border-border bg-card/50 px-4 py-3 transition-colors hover:border-muted-foreground/30"
-            role="article"
-            aria-label={`${card.label}: ${card.value}${card.suffix || ""}`}
-          >
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Icon size={13} aria-hidden="true" />
-              <span className="text-xs">{card.label}</span>
-              {card.pulse && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-500 status-running" aria-hidden="true" />
-              )}
-            </div>
-            <div className={`mt-1.5 text-xl font-semibold leading-7 tabular-nums ${card.valueClass || "text-foreground"}`}>
-              {card.value}
-              {card.suffix && (
-                <span className="ml-1.5 text-xs font-normal text-muted-foreground">{card.suffix}</span>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {cards.map((card) => (
+        <StatTile
+          key={card.label}
+          label={card.label}
+          value={card.value}
+          suffix={card.suffix}
+          icon={card.icon}
+          tone={card.tone}
+          pulse={card.pulse}
+        />
+      ))}
     </div>
   );
 }

@@ -207,7 +207,7 @@ export default function RoundtablePage() {
     : null;
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] flex">
+    <div className="h-[100dvh] flex">
       {/* ========== 左侧主区域 ========== */}
       <div className="flex-1 flex flex-col min-w-0" role="main" aria-label="圆桌会议主区域">
         {/* 顶部状态栏 */}

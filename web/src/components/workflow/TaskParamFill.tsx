@@ -309,7 +309,7 @@ export default function TaskParamFill({
   // ============ 渲染 ============
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] bg-slate-950 flex flex-col">
+    <div className="h-[100dvh] bg-slate-950 flex flex-col">
       {/* Top Bar */}
       <div className="h-12 px-4 bg-slate-900 border-b border-indigo-500/10 flex items-center shrink-0">
         <button

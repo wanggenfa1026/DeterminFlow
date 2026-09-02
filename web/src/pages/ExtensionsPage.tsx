@@ -294,7 +294,7 @@ export default function ExtensionsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground">
+    <div className="min-h-[100dvh] bg-background text-foreground">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-md bg-muted"><Boxes aria-hidden="true" /></div>

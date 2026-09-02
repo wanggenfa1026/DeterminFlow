@@ -500,7 +500,7 @@ export default function ChatPage() {
     [sessions],
   );
   return (
-    <div className="relative flex h-[calc(100dvh-3.5rem)] overflow-hidden">
+    <div className="relative flex h-[100dvh] overflow-hidden">
       <ChatWorkflowTasks
         tasks={workflowTasks}
         loading={workflowTasksLoading}

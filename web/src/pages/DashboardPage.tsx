@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
+import { LayoutDashboard } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useSystemStatus } from "../hooks/useSystemStatus";
 import { useSessions } from "../hooks/useSessions";
 import StatsCards from "../components/StatsCards";
@@ -47,7 +49,7 @@ export default function DashboardPage() {
 
   if (!status) {
     return (
-      <div className="h-[calc(100dvh-3.5rem)] flex flex-col items-center justify-center gap-3" role="status" aria-label="加载中" aria-live="polite">
+      <div className="h-[100dvh] flex flex-col items-center justify-center gap-3" role="status" aria-label="加载中" aria-live="polite">
         <div className="flex gap-1.5">
           <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse motion-reduce:animate-none [animation-delay:0ms]" aria-hidden="true" />
           <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse motion-reduce:animate-none [animation-delay:150ms]" aria-hidden="true" />
@@ -59,8 +61,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <ScrollArea className="h-[calc(100dvh-3.5rem)]">
+    <ScrollArea className="h-[100dvh]">
       <div className="p-6 space-y-4 max-w-[1400px] mx-auto" role="main" aria-label="仪表盘">
+        <PageHeader
+          icon={LayoutDashboard}
+          title="看板"
+          description="会话、工具调用与上下文压缩的实时概览"
+          className="mb-2"
+        />
         {/* Stats Cards Row */}
         <section aria-label="系统指标概览">
           <StatsCards status={status} />

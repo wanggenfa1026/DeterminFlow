@@ -773,7 +773,7 @@ export default function WorkflowPage() {
 
   if (isExecutionView && selectedId && selectedTaskId) {
     return (
-      <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+      <div className="h-[100dvh] flex flex-col bg-slate-950">
         {renderTabBar()}
         {renderExecutionView()}
       </div>
@@ -786,7 +786,7 @@ export default function WorkflowPage() {
     // 子视图：查看模式
     if (subView === "view" && selectedId) {
       return (
-        <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+        <div className="h-[100dvh] flex flex-col bg-slate-950">
           {renderTabBar()}
           <section aria-label={`查看工作流: ${selectedWorkflowName || "未命名"}`} className="flex-1 flex flex-col min-h-0">
             <WorkflowToolbar workflowId={selectedId} mode="view" onBack={handleBack} onEdit={() => handleEdit()} onStartTaskFill={handleStartTaskFill} onTaskStarted={handleTaskStarted} name={selectedWorkflowName} onRename={handleRename} />
@@ -799,7 +799,7 @@ export default function WorkflowPage() {
     // 子视图：编辑器
     if (subView === "editor" && selectedId) {
       return (
-        <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+        <div className="h-[100dvh] flex flex-col bg-slate-950">
           {renderTabBar()}
           <section aria-label={`编辑工作流: ${selectedWorkflowName || "未命名"}`} className="flex-1 flex flex-col min-h-0">
             <WorkflowToolbar workflowId={selectedId} mode="editor" onBack={handleBack} onSave={handleSaveRequest} hasUnsaved={hasUnsaved} saving={saving} name={selectedWorkflowName} onRename={handleRename} />
@@ -812,7 +812,7 @@ export default function WorkflowPage() {
     // 子视图：节点选择
     if (subView === "node-select" && selectedId) {
       return (
-        <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+        <div className="h-[100dvh] flex flex-col bg-slate-950">
           {renderTabBar()}
           {/* 重做提示条 */}
           {reuseTaskId && reuseTaskName && (
@@ -918,7 +918,7 @@ export default function WorkflowPage() {
       const effectiveSchemeId = (!schemeModified && activeSchemeId) ? activeSchemeId : undefined;
       const effectiveSelectedNodeIds = (schemeModified || !activeSchemeId) ? selectedNodeIds : undefined;
       return (
-        <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+        <div className="h-[100dvh] flex flex-col bg-slate-950">
           {renderTabBar()}
           <TaskParamFill
             workflowId={selectedId}
@@ -938,7 +938,7 @@ export default function WorkflowPage() {
     // 默认：模板卡片列表
     return (
       <>
-        <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+        <div className="h-[100dvh] flex flex-col bg-slate-950">
           {renderTabBar()}
           <WorkflowTemplatePanel
             workflows={workflows}
@@ -964,7 +964,7 @@ export default function WorkflowPage() {
 
   if (tab === "scripts") {
     return (
-      <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+      <div className="h-[100dvh] flex flex-col bg-slate-950">
         {renderTabBar()}
         <section id="wf-tabpanel-scripts" role="tabpanel" aria-label="脚本库管理" className="flex-1 min-h-0 flex flex-col">
           <div className="px-6 py-4 border-b border-indigo-500/10 shrink-0">
@@ -983,7 +983,7 @@ export default function WorkflowPage() {
 
   return (
     <>
-      <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-slate-950">
+      <div className="h-[100dvh] flex flex-col bg-slate-950">
         {renderTabBar()}
         <section id="wf-tabpanel-history" role="tabpanel" aria-label="任务执行历史" className="flex-1 min-h-0">
           <TaskHistoryPanel

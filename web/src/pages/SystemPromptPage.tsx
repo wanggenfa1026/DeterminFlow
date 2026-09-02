@@ -154,7 +154,7 @@ export default function SystemPromptPage() {
   }, [fullMarkdown, selectedSessionId]);
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] overflow-y-auto" role="main" aria-label="System Prompt 预览页面">
+    <div className="h-[100dvh] overflow-y-auto" role="main" aria-label="System Prompt 预览页面">
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
         {/* 标题栏 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

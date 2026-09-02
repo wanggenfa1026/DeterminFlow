@@ -1,12 +1,9 @@
 import { lazy, Suspense, useMemo } from "react";
-import { MessageSquare, LayoutDashboard, GitBranch, Users, Layers, Settings, BookOpen, Wifi, WifiOff, FileText, Workflow, Clock, Boxes, Loader2, type LucideIcon } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MessageSquare, LayoutDashboard, GitBranch, Users, Layers, Settings, BookOpen, FileText, Workflow, Clock, Boxes, type LucideIcon } from "lucide-react";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CORE_TAB_IDS, isCoreTabId, type CoreTabId } from "@/core-tabs";
-import { PRODUCT_NAME } from "@/brand";
-import { BrandMark } from "@/components/BrandMark";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { useGlobalEvents } from "./hooks/useGlobalEvents";
+import { AppRail } from "@/components/layout/AppRail";
 import { patchSearchParams, useUrlParam } from "./hooks/useUrlParam";
 import { useExtensions } from "./extensions/context-value";
 import { ExtensionHeaderStatusSlot } from "./extensions/ExtensionHeaderStatusSlot";
@@ -76,35 +73,24 @@ const CORE_PAGE_MAP: Record<CoreTabId, React.ComponentType> = {
   extensions: ExtensionsPage,
 };
 
-function GlobalConnectionStatus() {
-  const { connected } = useGlobalEvents();
-
-  return (
-    <div className="flex shrink-0 items-center gap-3" aria-live="polite">
-      <div className="flex items-center gap-2 text-sm">
-        {connected ? (
-          <Wifi size={14} className="text-green-400" aria-hidden="true" />
-        ) : (
-          <WifiOff size={14} className="text-red-400" aria-hidden="true" />
-        )}
-        <span className={`hidden xl:inline ${connected ? "text-green-400" : "text-red-400"}`}>
-          {connected ? "已连接" : "断开"}
-        </span>
-        <span className="sr-only">
-          {connected ? "WebSocket 已连接" : "WebSocket 连接断开"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
+/** 页面切换时的骨架屏：模拟「页头 + 统计行 + 内容块」的通用结构，避免闪一下转圈文字 */
 function PageLoadingFallback() {
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center" role="status" aria-live="polite">
-      <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        <span>正在加载页面...</span>
+    <div className="mx-auto max-w-5xl space-y-6 p-6" role="status" aria-live="polite" aria-label="正在加载页面">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-9 w-9 rounded-lg" />
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3.5 w-64" />
+        </div>
       </div>
+      <div className="grid grid-cols-3 gap-3">
+        <Skeleton className="h-16" />
+        <Skeleton className="h-16" />
+        <Skeleton className="h-16" />
+      </div>
+      <Skeleton className="h-64" />
+      <span className="sr-only">正在加载页面...</span>
     </div>
   );
 }
@@ -146,55 +132,16 @@ function App() {
     <DesktopUpdateProvider>
       <ToastProvider>
         <FirstRunOnboarding>
-          <div className="flex h-dvh flex-col overflow-hidden bg-background">
-            {/* Top Navigation Bar */}
-            <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/85 backdrop-blur-md border-b border-border/70">
-              <div className="h-full flex items-center gap-3 px-4">
-                {/* Brand */}
-                <div className="flex shrink-0 items-center gap-3">
-                  <BrandMark
-                    alt={PRODUCT_NAME}
-                    className="h-8 w-8 shrink-0"
-                  />
-                  <h1
-                    className="hidden text-lg font-semibold tracking-tight text-foreground 2xl:block"
-                    aria-hidden="true"
-                  >
-                    {PRODUCT_NAME}
-                  </h1>
-                </div>
+          <div className="flex h-dvh overflow-hidden bg-background">
+            {/* 左侧导航栏 */}
+            <AppRail items={tabs} activeTab={activeTab} onChange={handleTabChange} />
 
-                {/* Tabs */}
-                <Tabs className="min-w-0 flex-1" value={activeTab} onValueChange={handleTabChange}>
-                  <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <TabsList className="w-max justify-start bg-secondary/50 border border-border/60" role="tablist" aria-label="主导航">
-                      {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                          <TabsTrigger
-                            key={tab.value}
-                            value={tab.value}
-                            className={`gap-2 ${tab.activeClass}`}
-                            role="tab"
-                            aria-selected={activeTab === tab.value}
-                          >
-                            <Icon size={16} aria-hidden="true" />
-                            <span>{tab.label}</span>
-                          </TabsTrigger>
-                        );
-                      })}
-                    </TabsList>
-                  </div>
-                </Tabs>
-
+            {/* 主内容区 */}
+            <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-none" role="main" aria-label="主内容区域">
+              {/* 插件更新提示：仅在有内容时渲染，悬浮于右上角 */}
+              <div className="pointer-events-none fixed right-4 top-3 z-40 [&>*]:pointer-events-auto">
                 <ExtensionHeaderStatusSlot onManage={handleManageExtension} />
-                <GlobalConnectionStatus />
-                <ThemeToggle />
               </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="min-h-0 flex-1 overflow-y-auto overscroll-none pt-14" role="main" aria-label="主内容区域">
               <Suspense fallback={<PageLoadingFallback />}>
                 {CorePage ? <CorePage /> : ExtensionPage ? <ExtensionPage /> : null}
               </Suspense>

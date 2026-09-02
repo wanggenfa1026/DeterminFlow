@@ -180,7 +180,7 @@ export default function CompressionLogsPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100dvh-3.5rem)] flex items-center justify-center">
+      <div className="h-[100dvh] flex items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground animate-pulse motion-reduce:animate-none" role="status" aria-label="正在加载日志数据">
           <RefreshCw size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
           <span>加载日志数据...</span>
@@ -191,7 +191,7 @@ export default function CompressionLogsPage() {
   }
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] overflow-auto p-6" role="main" aria-label="压缩日志查看页面">
+    <div className="h-[100dvh] overflow-auto p-6" role="main" aria-label="压缩日志查看页面">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* 错误提示 */}
         {error && (

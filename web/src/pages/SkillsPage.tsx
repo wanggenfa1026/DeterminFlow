@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { StatTile } from '@/components/layout/StatTile';
 import { BookOpen, Code, Search, MessageSquare, Brain, Workflow, GraduationCap, RefreshCw, Eye, Power, PowerOff, Edit2, Check, X, Layers, Trash2, Loader2, AlertCircle, Zap, Snowflake } from 'lucide-react';
 import { SkillGroup } from '../types';
 import { fetchSkillGroups, createSkillGroup, updateSkillGroup, deleteSkillGroup, setSkillGroups } from '../lib/api';
@@ -290,29 +292,28 @@ export default function SkillsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6" role="main" aria-label="技能管理页面">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Skills 管理</h1>
-          <p className="text-muted-foreground">管理可复用的知识和行为模块</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        icon={BookOpen}
+        title="Skills"
+        description="管理可复用的知识和行为模块"
+        className="mb-0"
+        actions={(
+          <>
           <Button type="button" variant="outline" onClick={() => { setShowGroupDialog(true); openCreateGroup(); }} aria-label="管理技能组" className="focus-visible:ring-2 focus-visible:ring-primary/50">
             <Layers className="w-4 h-4 mr-2" aria-hidden="true" />管理组
           </Button>
           <Button type="button" onClick={async () => { setIsReloading(true); try { await fetch('/api/skills/reload', { method: 'POST' }); await Promise.all([loadSkills(), loadStats()]); toast({ title: "重新加载完成" }); } catch { toast({ title: "重新加载失败", variant: "destructive" }); } finally { setIsReloading(false); } }} disabled={isReloading} aria-label="重新加载技能" className="focus-visible:ring-2 focus-visible:ring-primary/50">
             <RefreshCw className={`w-4 h-4 mr-2 ${isReloading ? 'animate-spin motion-reduce:animate-none' : ''}`} aria-hidden="true" />重新加载
           </Button>
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       {stats && (
-        <div className="grid grid-cols-3 gap-4" role="region" aria-label="技能统计">
-          <Card><CardHeader className="pb-3"><CardTitle className="text-sm">总计</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold tabular-nums">{stats.total}</div></CardContent></Card>
-          <Card><CardHeader className="pb-3"><CardTitle className="text-sm">已启用</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-emerald-500 tabular-nums">{stats.enabled}</div></CardContent></Card>
-          <Card><CardHeader className="pb-3"><CardTitle className="text-sm">已禁用</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-slate-400 tabular-nums">{stats.disabled}</div></CardContent></Card>
+        <div className="grid grid-cols-3 gap-3" role="region" aria-label="技能统计">
+          <StatTile label="总计" value={stats.total} />
+          <StatTile label="已启用" value={stats.enabled} tone="positive" />
+          <StatTile label="已禁用" value={stats.disabled} tone="muted" />
         </div>
       )}
 
