@@ -131,7 +131,7 @@ export function WorkflowTemplatePanel({
                     onView(workflow.workflow_id);
                   }
                 }}
-                className="group p-5 rounded-xl bg-slate-900 border border-indigo-500/10 hover:border-indigo-500/40 cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                className="group p-5 rounded-xl bg-card border border-border/70 hover:border-primary/40 cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-slate-100 font-medium truncate flex-1">{workflow.name || "未命名工作流"}</h3>
